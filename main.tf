@@ -22,6 +22,10 @@ resource "local_file" "lke_config" {
 
 provider "kubernetes" {
   config_paths = [local_file.lke_config.filename]
+
+  experiments {
+    manifest_resource = true
+  }
 }
 
 provider "helm" {
@@ -54,11 +58,11 @@ resource "kubernetes_secret" "external_dns" {
 
 # https://artifacthub.io/packages/helm/bitnami/external-dns
 resource "helm_release" "external_dns" {
-  name         = "external-dns"
-  repository   = "https://charts.bitnami.com/bitnami"
-  chart        = "external-dns"
-  namespace    = kubernetes_namespace.external_dns.metadata[0].name
-  force_update = true
+  name              = "external-dns"
+  repository        = "https://charts.bitnami.com/bitnami"
+  chart             = "external-dns"
+  namespace         = kubernetes_namespace.external_dns.metadata[0].name
+  force_update      = true
   dependency_update = true
 
   set {
@@ -70,4 +74,29 @@ resource "helm_release" "external_dns" {
     name  = "linode.secretName"
     value = kubernetes_secret.external_dns.metadata[0].name
   }
+}
+
+# https://artifacthub.io/packages/helm/cert-manager/cert-manager
+resource "helm_release" "cert_manager" {
+  name             = "cert-manager"
+  repository       = "https://charts.jetstack.io"
+  chart            = "cert-manager"
+  namespace        = "cert-manager"
+  create_namespace = true
+
+  set {
+    name  = "installCRDs"
+    value = true
+  }
+}
+
+# TODO: this resource is not getting installed before the helm_release, without the CRD the GVR of the manifest is rejected
+resource "kubernetes_manifest" "cert_manager_issuer_prod" {
+  depends_on = [helm_release.cert_manager]
+  manifest   = yamldecode(templatefile("${path.module}/assets/cert-manager-prod.yaml", { issuer_email = var.issuer_email }))
+}
+
+resource "kubernetes_manifest" "cert_manager_issuer_staging" {
+  depends_on = [helm_release.cert_manager]
+  manifest   = yamldecode(templatefile("${path.module}/assets/cert-manager-staging.yaml", { issuer_email = var.issuer_email }))
 }
