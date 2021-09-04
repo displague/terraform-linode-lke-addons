@@ -90,6 +90,15 @@ resource "helm_release" "cert_manager" {
   }
 }
 
+# https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx
+resource "helm_release" "ingress_nginx" {
+  name             = "ingress-nginx"
+  repository       = "https://kubernetes.github.io/ingress-nginx"
+  chart            = "ingress-nginx"
+  namespace        = "ingress-nginx"
+  create_namespace = true
+}
+
 # TODO: this resource is not getting installed before the helm_release, without the CRD the GVR of the manifest is rejected
 resource "kubernetes_manifest" "cert_manager_issuer_prod" {
   depends_on = [helm_release.cert_manager]
