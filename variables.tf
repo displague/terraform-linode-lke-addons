@@ -1,0 +1,1 @@
+variable "linode_token" {}
