@@ -4,9 +4,6 @@ terraform {
       source = "linode/linode"
       # version = "..."
     }
-    kubectl = {
-      source = "gavinbunney/kubectl"
-    }
   }
 }
 

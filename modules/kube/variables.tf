@@ -1,0 +1,1 @@
+variable "lke_config" {}

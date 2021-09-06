@@ -1,0 +1,3 @@
+linode_token = ""
+issuer_email = "acme@example.org"
+example_host = "lketest.example.org"
