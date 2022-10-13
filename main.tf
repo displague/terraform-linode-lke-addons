@@ -66,3 +66,11 @@ module "triage" {
   triage_host = var.triage_host
 }
 
+module "jhub" {
+  count         = (var.jhub_hostname != "" && var.jhub_client_id != "" && var.jhub_client_secret != "") ? 1 : 0
+  depends_on    = [module.lke]
+  source        = "./modules/jhub"
+  hostname      = var.jhub_hostname
+  client_id     = var.jhub_client_id
+  client_secret = var.jhub_client_secret
+}

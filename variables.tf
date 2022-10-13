@@ -24,3 +24,17 @@ variable "minecraft_hostname" {
   default     = ""
   description = "hostname where minecraft will run"
 }
+
+variable "jhub_hostname" {
+  default     = ""
+  description = "hostname for jupyter hub"
+}
+
+variable "jhub_client_id" {
+  default     = ""
+  description = "GH client_id for jhub"
+}
+variable "jhub_client_secret" {
+  default     = ""
+  description = "GH client_secret for jhub"
+}
