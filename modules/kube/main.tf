@@ -1,12 +1,17 @@
 resource "linode_lke_cluster" "lke" {
   label       = "lke.tf"
-  k8s_version = "1.21"
+  k8s_version = "1.23"
   region      = "us-central"
   tags        = ["lke", "terraform"]
 
   pool {
     type  = "g6-standard-2"
     count = 3
+
+    autoscaler {
+      min = 1
+      max = 3
+    }
   }
 }
 
