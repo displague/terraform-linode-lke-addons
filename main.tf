@@ -49,6 +49,15 @@ module "longhorn" {
   source     = "./modules/longhorn"
 }
 
+module "minecraft" {
+  count      = (var.minecraft_ops != "" && var.minecraft_hostname != "") ? 1 : 0
+  depends_on = [module.lke, module.longhorn]
+  source     = "./modules/minecraft"
+  ops        = var.minecraft_ops
+  hostname   = var.minecraft_hostname
+  motd       = var.minecraft_motd
+}
+
 module "triage" {
   count       = (var.gh_token != "" && var.triage_host != "") ? 1 : 0
   depends_on  = [module.lke]
