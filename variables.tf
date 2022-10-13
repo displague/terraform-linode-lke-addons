@@ -10,3 +10,17 @@ variable "triage_host" {
   default     = ""
   description = "hostname where triage party will reside"
 }
+variable "minecraft_ops" {
+  default     = ""
+  description = "minecraft usernames that will receive ops"
+}
+
+variable "minecraft_motd" {
+  default     = ""
+  description = "Minecraft MOTD"
+}
+
+variable "minecraft_hostname" {
+  default     = ""
+  description = "hostname where minecraft will run"
+}
