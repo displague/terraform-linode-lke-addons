@@ -1,0 +1,591 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: triage-party-config
+  namespace: triage-tinkerbell
+data:
+  # The contents of config/config.yaml
+  config.yaml: |
+    settings:
+      name: Tinkerbell
+      min_similarity: 0.75
+      repos:
+        - https://github.com/tinkerbell/.github
+        - https://github.com/tinkerbell/artwork
+        - https://github.com/tinkerbell/boots
+        - https://github.com/tinkerbell/cluster-api-provider-tink
+        - https://github.com/tinkerbell/crocodile
+        - https://github.com/tinkerbell/hegel
+        - https://github.com/tinkerbell/hook
+        - https://github.com/tinkerbell/hub
+        - https://github.com/tinkerbell/infrastructure
+        - https://github.com/tinkerbell/k8s-sandbox
+        - https://github.com/tinkerbell/lint-install
+        - https://github.com/tinkerbell/osie
+        - https://github.com/tinkerbell/pbnj
+        - https://github.com/tinkerbell/proposals
+        - https://github.com/tinkerbell/sandbox
+        - https://github.com/tinkerbell/terraform-provider-tinkerbell
+        - https://github.com/tinkerbell/tink
+        - https://github.com/tinkerbell/tinkerbell-docs
+        - https://github.com/tinkerbell/tinkerbell.org
+
+    collections:
+      - id: daily
+        name: Daily
+        dedup: true
+        description: >
+          Reviewed during the week.
+
+          * Keeping an open dialog with our users
+          * Initial prioritization (does not have to be perfect)
+        rules:
+          # Don't leave code reviews hanging
+          - pr-approved-stale
+          - pr-reviewable
+          # Expectation violations
+          - issue-needs-priority-too-long
+          - issue-needs-comment-too-long
+          - issue-important-too-long
+          # missing initial feedback
+          - issue-needs-kind
+          - issue-needs-priority
+          - issue-needs-comment
+          # reprioritize
+          - issue-new-with-reactions
+          - issue-new-with-many-commenters
+          # Don't forget our users
+          - issue-updated-needs-info
+          - issue-updated-has-question
+
+      - id: weekly
+        name: Bi-weekly
+        dedup: true
+        description: >
+          Once every two weeks, we meet up to address loose ends. Prioritize:
+
+          * Keeping an open dialog with our users
+          * Raising the priority for hot issues
+        rules:
+          - discuss
+          # Issues needing closure
+          - issue-stale-needs-info
+          - issue-stale-support
+          # People with questions
+          - issue-has-question
+          - issue-updated-support
+          # Expectations
+          - issue-near-important-too-long
+          - issue-near-longterm-too-long
+          # PR's needing closure
+          - pr-reviewable-older
+          - pr-approved-stale
+          - pr-unapproved-stale
+          # Issues needing reprioritization
+          - many-reactions
+          - many-commenters
+          - issue-zombies
+
+      - id: scrub
+        name: Quarterly
+        dedup: true
+        description: >
+          Once every quarter, we look for stale issues and de-duplicate. Prioritize:
+
+          * De-duplication
+          * Keeping the bug queue relevant
+          * Making tough decisions about long-standing requests
+        rules:
+          - features-recv
+          - features-old
+          - bugs-recv
+          - bugs-old
+          - other-recv
+          - other-old
+
+      - id: important
+        name: Important
+        description: >
+          Items labeled as priority/important-soon or priority/critical-urgent.
+        overflow: 3
+        dedup: true
+        rules:
+          - important-not-milestoned
+          - important-milestoned
+          - important-assignee-updated
+          - important-pr-needs-review
+          - important-pr-needs-work
+          - important-pr-needs-merge
+          - important-recently-closed
+
+      - id: similar
+        name: Similar
+        description: Items which appear similar to one other. Review for duplicates or vague titles.
+        rules:
+          - similar-prs
+          - similar-issues
+
+      - id: __open__
+        name: All open PR's and Issues that should be considered for repository stats (hidden)
+        used_for_statistics: true
+        hidden: true
+        rules:
+          - open-prs
+          - open-issues
+
+      - id: __velocity__
+        name: issues to include in velocity metrics
+        used_for_statistics: true
+        hidden: true
+        rules:
+          - closed-milestone-issues
+
+    rules:
+      ### Milestone Kanban ###
+      milestone-not-started:
+        name: "Not started"
+        type: issue
+        filters:
+          - tag: open-milestone
+          - tag: "!assignee-updated"
+          - tag: "!(assignee-open-pr|assignee-closed-pr)"
+      milestone-assignee-updated:
+        name: "In Progress"
+        type: issue
+        filters:
+          - tag: open-milestone
+          - tag: "assignee-updated"
+          - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
+      milestone-pr-needs-work:
+        name: "PR needs work"
+        type: issue
+        filters:
+          - tag: open-milestone
+          - tag: "(pr-changes-requested|pr-reviewer-comment)"
+      milestone-pr-needs-review:
+        name: "PR needs Review"
+        type: issue
+        filters:
+          - tag: open-milestone
+          - tag: "(pr-unreviewed|pr-new-commits)"
+      milestone-pr-needs-merge:
+        name: "PR needs Merge"
+        type: issue
+        filters:
+          - tag: open-milestone
+          - tag: "(pr-approved|pr-approved-but-pushed)"
+      milestone-recently-closed:
+        name: "Finish Line"
+        type: issue
+        filters:
+          - tag: open-milestone
+          - state: closed
+          - updated: -30d
+
+      ### Important Kanban ###
+      important-not-milestoned:
+        name: "Not in milestone"
+        type: issue
+        filters:
+          - label: "priority/important-soon|priority/critical-urgent"
+          - tag: "!open-milestone"
+          - tag: "!assignee-updated"
+          - tag: "!(assignee-open-pr|assignee-closed-pr)"
+      important-milestoned:
+        name: "In Milestone"
+        type: issue
+        filters:
+          - label: "priority/important-soon|priority/critical-urgent"
+          - tag: open-milestone
+          - tag: "assignee-updated"
+          - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
+      important-assignee-updated:
+        name: "In Progress"
+        type: issue
+        filters:
+          - label: "priority/important-soon|priority/critical-urgent"
+          - tag: "assignee-updated"
+          - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
+      important-pr-needs-work:
+        name: "PR needs work"
+        type: issue
+        filters:
+          - label: "priority/important-soon|priority/critical-urgent"
+          - tag: "(pr-changes-requested|pr-reviewer-comment)"
+      important-pr-needs-review:
+        name: "PR needs Review"
+        type: issue
+        filters:
+          - label: "priority/important-soon|priority/critical-urgent"
+          - tag: "(pr-unreviewed|pr-new-commits)"
+      important-pr-needs-merge:
+        name: "PR needs Merge"
+        type: issue
+        filters:
+          - label: "priority/important-soon|priority/critical-urgent"
+          - tag: "(pr-approved|pr-approved-but-pushed)"
+      important-recently-closed:
+        name: "Recently closed"
+        type: issue
+        filters:
+          - label: "priority/important-soon|priority/critical-urgent"
+          - state: closed
+          - updated: -30d
+
+      ### Semi-Weekly Triage ####
+      # Expectation violations
+      issue-needs-priority-too-long:
+        name: "Unprioritized issues older than 7 days"
+        resolution: "Add a priority/ or kind/support label"
+        type: issue
+        filters:
+          - label: "!priority/.*"
+          - label: "!kind/support"
+          - label: "!kind/design"
+          - label: "!triage/discuss"
+          - created: +7d
+
+      issue-needs-comment-too-long:
+        name: "Uncommented older than 7 days"
+        resolution: "Add a comment"
+        type: issue
+        filters:
+          - tag: "!commented"
+          - tag: "recv"
+          - created: +7d
+
+      issue-important-too-long:
+        name: "Important soon, but no updates in 60 days -- exceeds limit"
+        resolution: "Downgrade to important-longterm"
+        type: issue
+        filters:
+          - label: "priority/important-soon"
+          - updated: +60d
+
+      issue-longterm-too-long:
+        name: "Important longterm, but no updates in 120 days -- exceeds limit"
+        resolution: "Downgrade to backlog"
+        type: issue
+        filters:
+          - label: "priority/important-longterm"
+          - updated: +120d
+
+      # Don't leave code reviews hanging
+      pr-reviewable:
+        name: "Pull Requests: Review Ready"
+        resolution: "Review requests or mark them as do-not-merge/work-in-progress"
+        type: pull_request
+        filters:
+          - label: "!do-not-merge.*"
+          - label: "!needs-rebase"
+          - label: "!cncf-cla: no"
+          - tag: "!changes-requested"
+          - tag: "!send"
+          - tag: "!draft"
+          # Temporarily workaround inability to track PR eligibility
+          - updated: +1d
+
+      pr-reviewable-older:
+        name: "Pull Requests: Review Ready"
+        resolution: "Review requests or mark them as do-not-merge/work-in-progress"
+        type: pull_request
+        filters:
+          - label: "!do-not-merge.*"
+          - label: "!needs-rebase"
+          - label: "!cncf-cla: no"
+          - tag: "!changes-requested"
+          - tag: "!send"
+          - tag: "!draft"
+          - updated: +2d
+
+      # Issues missing initial feedback
+      issue-needs-kind:
+        name: "Unkinded Issues"
+        resolution: "Add a kind/ label"
+        type: issue
+        filters:
+          - label: "!kind/.*"
+          - label: "!triage/discuss"
+
+      issue-needs-priority:
+        name: "Unprioritized Issues (newer)"
+        resolution: "Add a priority/ laber or mark issue as kind/support|kind/design"
+        type: issue
+        filters:
+          - label: "!priority/.*"
+          - label: "!kind/support"
+          - label: "!kind/design"
+          # avoid duplicating unkinded issues
+          - label: "triage|kind"
+          - created: -5d
+
+      issue-needs-comment:
+        name: "Uncommented Issues"
+        resolution: "Add a comment"
+        type: issue
+        filters:
+          - tag: "!commented"
+          - tag: "recv"
+          - created: -5d
+
+      # Issues that may need reprioritized
+      issue-new-with-reactions:
+        name: "New, has multiple reactions, but not important-soon"
+        resolution: "Check if issue should be prioritized as important-soon"
+        type: issue
+        filters:
+          - reactions: ">2"
+          - created: -10d
+          - tag: "!send"
+          - label: "!priority/important-soon"
+
+      issue-new-with-many-commenters:
+        name: "New, has multiple commenters, but not important-soon"
+        resolution: "Check if issue should be prioritized as important-soon"
+        type: issue
+        filters:
+          - commenters: ">3"
+          - created: -10d
+          - tag: "!send"
+          - label: "!priority/important-soon"
+
+      # Don't forget our users
+      issue-updated-needs-info:
+        name: "needs information, has update"
+        resolution: "Comment and remove triage/needs-information tag"
+        type: issue
+        filters:
+          - label: triage/needs-information
+          - tag: recv
+
+      issue-updated-has-question:
+        name: "Recently updated issue has a question"
+        resolution: "Add an answer"
+        type: issue
+        filters:
+          - tag: recv-q
+          - label: "!triage/needs-information"
+          - tag: "!member-last"
+          - tag: "!contributor-last"
+          - responded: +3d
+          - updated: -7d
+
+      ####### Bi-Weekly Triage #########
+      discuss:
+        name: "Items for discussion"
+        resolution: "Discuss and remove label"
+        filters:
+          - label: triage/discuss
+          - state: "all"
+
+      # Nearing expectation limits
+      issue-near-important-too-long:
+        name: "Important soon, but no updates in 40 days -- nearing limit"
+        resolution: "Downgrade to important-longterm"
+        type: issue
+        filters:
+          - label: "priority/important-soon|priority/critical-urgent"
+          - updated: +40d
+
+      issue-near-longterm-too-long:
+        name: "Important longterm, but no updates in 110 days -- nearing limit"
+        resolution: "Downgrade to backlog"
+        type: issue
+        filters:
+          - label: "priority/important-longterm"
+          - updated: +110d
+
+      # issues needing reprioritization
+      many-reactions:
+        name: "many reactions, low priority"
+        resolution: "Upgrade to priority-soon, priority-longterm, or longterm-support"
+        filters:
+          - reactions: ">3"
+          - reactions-per-month: ">0.75"
+          - label: "!priority/important-soon"
+          - label: "!priority/important-longterm"
+          - label: "!long-term-support"
+
+      many-commenters:
+        name: "many commenters, low priority"
+        resolution: "Upgrade to priority-soon, priority-longterm, or longterm-support"
+        type: issue
+        filters:
+          - commenters: ">2"
+          - commenters-per-month: ">1.9"
+          - created: "+30d"
+          - label: "!priority/important-soon"
+          - label: "!priority/important-longterm"
+          - label: "!long-term-support"
+          - responded: "+30d"
+
+      issue-zombies:
+        name: "Screaming into the void"
+        resolution: "Reopen, or ask folks to open a new issue"
+        type: issue
+        filters:
+          - state: closed
+          - updated: -7d
+          - tag: recv
+          - comments-while-closed: ">1"
+
+      # Issues needing closure
+      issue-stale-needs-info:
+        name: "Needs information for over 2 weeks"
+        resolution: "Close or remove triage/needs-information label"
+        type: issue
+        filters:
+          - label: triage/needs-information
+          - updated: +13d
+
+      issue-stale-support:
+        name: "Support request over 30 days old"
+        resolution: "Close, or add to triage/long-term-support"
+        type: issue
+        filters:
+          - label: kind/support
+          - label: "!long-term-support"
+          - updated: +29d
+
+      ancient-issues:
+        name: "Ancient issues"
+        resolution: "Close or add comment that this issue should stick around"
+        filters:
+          - updated: +250d
+
+      # PR's needing closure
+      pr-approved-stale:
+        name: "Pull requests: Approved and getting old"
+        type: pull_request
+        filters:
+          - label: "!do-not-merge.*"
+          - label: "!needs-rebase"
+          - tag: "approved"
+          - updated: +5d
+
+      pr-unapproved-stale:
+        name: "Pull Requests: Stale"
+        resolution: "Add comment and/or close PR"
+        type: pull_request
+        filters:
+          - created: +20d
+          - updated: +5d
+
+      # People with questions
+      issue-has-question:
+        name: "Overdue answers for a question"
+        resolution: "Add a comment"
+        type: issue
+        filters:
+          - tag: recv-q
+          - label: "!triage/needs-information"
+          - tag: "!member-last"
+          - tag: "!contributor-last"
+          - responded: +6d
+
+      issue-updated-support:
+        name: "Updated support requests"
+        resolution: "Move out of support, or add a comment"
+        type: issue
+        filters:
+          - tag: recv
+          - label: "!triage/needs-information"
+          - label: "triage/support"
+          - tag: "!member-last"
+          - tag: "!contributor-last"
+          - responded: +6d
+
+      ## Bug Scrub ##
+      bugs-recv:
+        name: "Bugs that deserve a follow-up comment"
+        resolution: "Comment or close the issue"
+        type: issue
+        filters:
+          - tag: recv
+          - responded: +45d
+          - created: +45d
+          - label: "kind/bug"
+
+      features-recv:
+        name: "Features that deserve a follow-up comment"
+        resolution: "Comment or close the issue"
+        type: issue
+        filters:
+          - tag: recv
+          - responded: +60d
+          - created: +30d
+          - label: "kind/feature"
+
+      other-recv:
+        name: "Items that deserve a follow-up comment"
+        resolution: "Comment or close the issue"
+        type: issue
+        filters:
+          - tag: recv
+          - responded: +30d
+          - label: "!kind/feature"
+          - label: "!kind/bug"
+          - label: "!kind/support"
+
+      features-old:
+        name: "Features that have not been commented on in 180 days"
+        resolution: "Comment or close the issue"
+        type: issue
+        filters:
+          - responded: +180d
+          - created: +180d
+          - label: "kind/feature"
+
+      bugs-old:
+        name: "Bugs that have not been commented on within 180 days"
+        resolution: "Comment or close the issue"
+        type: issue
+        filters:
+          - label: "kind/bug"
+          - responded: +180d
+          - created: +180d
+
+      other-old:
+        name: "Other items that have not been commented on within 180 days"
+        resolution: "Comment or close the issue"
+        type: issue
+        filters:
+          - responded: +180d
+          - created: +180d
+          - label: "!kind/feature"
+          - label: "!kind/bug"
+          - label: "!kind/support"
+
+      ## Similar
+      similar-prs:
+        name: "Similar Pull Requests"
+        type: pull_request
+        resolution: Close as duplicate or give a better title
+        filters:
+          - tag: similar
+
+      similar-issues:
+        name: "Similar Issues"
+        type: issue
+        resolution: Close as duplicate or give a better title
+        filters:
+          - tag: similar
+
+
+      # for statistics generation
+      open-issues:
+        name: "Open Issues"
+        type: issue
+
+      open-prs:
+        name: "Open PRs"
+        type: pull_request
+
+      closed-milestone-issues:
+        name: "Recently closed milestone issues"
+        type: issue
+        filters:
+          - state: closed
+          - closed: -90d
+          - milestone: ".*"
+          - label: "!triage/duplicate"
