@@ -44,6 +44,11 @@ module "ingress_nginx" {
   example_host = var.example_host
 }
 
+module "longhorn" {
+  depends_on = [module.lke]
+  source     = "./modules/longhorn"
+}
+
 module "triage" {
   count       = (var.gh_token != "" && var.triage_host != "") ? 1 : 0
   depends_on  = [module.lke]
