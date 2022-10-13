@@ -44,3 +44,11 @@ module "ingress_nginx" {
   example_host = var.example_host
 }
 
+module "triage" {
+  count       = (var.gh_token != "" && var.triage_host != "") ? 1 : 0
+  depends_on  = [module.lke]
+  source      = "./modules/triage"
+  gh_token    = var.gh_token
+  triage_host = var.triage_host
+}
+
