@@ -6,7 +6,7 @@ resource "helm_release" "longhorn" {
   create_namespace = true
 
   set {
-    name = "persistence.defaultClass"
+    name  = "persistence.defaultClass"
     value = "false"
   }
 }

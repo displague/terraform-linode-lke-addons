@@ -36,8 +36,8 @@ resource "kubectl_manifest" "manifests" {
   # for_each = data.kubectl_path_documents.manifests.documents
   # yaml_body = each.value
   depends_on = [helm_release.ingress_nginx]
-  count     = 9 # hard-coding is a work-around. TF can't use a data source derived count in 1 pass.
-  yaml_body = data.kubectl_path_documents.manifests.documents[count.index]
+  count      = 9 # hard-coding is a work-around. TF can't use a data source derived count in 1 pass.
+  yaml_body  = data.kubectl_path_documents.manifests.documents[count.index]
 }
 
 data "kubectl_path_documents" "example" {

@@ -1,11 +1,11 @@
 locals {
   names = [
-  "ns",
-  "secret",
-  "party-tinkerbell/configmap-tinkerbell",
-  "deployment",
-  "service",
-  "ingress",
+    "ns",
+    "secret",
+    "party-tinkerbell/configmap-tinkerbell",
+    "deployment",
+    "service",
+    "ingress",
   ]
 }
 resource "kubectl_manifest" "triage_tinkerbell" {
