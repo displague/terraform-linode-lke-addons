@@ -26,6 +26,20 @@ resource "helm_release" "ingress_nginx" {
     name  = "defaultBackend.annotations.service\\.beta\\.kubernetes\\.io/linode-loadbalancer-proxy-protocol"
     value = "v2"
   }
+
+  # enable legacy fully automated kubernetes.io/tls-acme: "true" annotations
+  #set {
+  #name="ingressShim.defaultIssuerName"
+  #value="letsencrypt-prod"
+  #}
+  #set {
+  #name="ingressShim.defaultIssuerKind"
+  #value="ClusterIssuer"
+  #}
+  #set {
+  #name="ingressShim.defaultIssuerGroup"
+  #value="cert-manager.io"
+  #}
 }
 
 data "kubectl_path_documents" "manifests" {
