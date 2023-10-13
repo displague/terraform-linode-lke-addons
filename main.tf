@@ -3,8 +3,9 @@ provider "linode" {
 }
 
 module "lke" {
-  source     = "./modules/kube"
-  lke_config = "${path.module}/kube.config"
+  source      = "./modules/kube"
+  lke_config  = "${path.module}/kube.config"
+  k8s_version = var.k8s_version
 }
 
 provider "kubernetes" {
@@ -67,10 +68,11 @@ module "triage" {
 }
 
 module "jhub" {
-  count         = (var.jhub_hostname != "" && var.jhub_client_id != "" && var.jhub_client_secret != "") ? 1 : 0
-  depends_on    = [module.lke]
-  source        = "./modules/jhub"
-  hostname      = var.jhub_hostname
-  client_id     = var.jhub_client_id
-  client_secret = var.jhub_client_secret
+  count          = (var.jhub_hostname != "" && var.jhub_client_id != "" && var.jhub_client_secret != "") ? 1 : 0
+  depends_on     = [module.lke]
+  source         = "./modules/jhub"
+  hostname       = var.jhub_hostname
+  client_id      = var.jhub_client_id
+  client_secret  = var.jhub_client_secret
+  gh_admin_users = var.gh_admin_users
 }

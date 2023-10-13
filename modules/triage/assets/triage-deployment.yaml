@@ -31,7 +31,7 @@ spec:
             secretKeyRef:
               key: token
               name: triage-party-github-token
-        image: triageparty/triage-party:1.4.0
+        image: triageparty/triage-party:1.5.0
         imagePullPolicy: Always
         name: triage-party
         resources: {}

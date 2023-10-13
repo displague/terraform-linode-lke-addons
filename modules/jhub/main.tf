@@ -12,7 +12,7 @@ resource "helm_release" "jupyterhub" {
   dependency_update = true
 
   values = [
-  <<-EOT
+    <<-EOT
     ingress:
       enabled: true
       hosts:
@@ -47,30 +47,30 @@ resource "helm_release" "jupyterhub" {
     value = "letsencrypt-prod"
   }
 
-#  set {
-#    name = "ingress.annotations.kubernetes\\.io/ingress\\.class"
-#    value = "nginx"
-#  }
+  #  set {
+  #    name = "ingress.annotations.kubernetes\\.io/ingress\\.class"
+  #    value = "nginx"
+  #  }
 
   set {
-    name = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-body-size"
+    name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-body-size"
     value = "1024m"
   }
 
   set {
-    name = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-connect-timeout"
+    name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-connect-timeout"
     value = "30"
     type  = "string"
   }
 
   set {
-    name = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-read-timeout"
+    name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-read-timeout"
     value = "1800"
     type  = "string"
   }
 
   set {
-    name = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-send-timeout"
+    name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-send-timeout"
     value = "1800"
     type  = "string"
   }
@@ -96,8 +96,13 @@ resource "helm_release" "jupyterhub" {
   }
 
   set {
+    name  = "hub.config.GitHubOAuthenticator.admin_users"
+    value = join(",", var.gh_admin_users)
+  }
+
+  set {
     name  = "hub.config.GitHubOAuthenticator.oauth_callback_url"
-    value = "https://{var.hostname}/hub/oauth_callback"
+    value = "https://${var.hostname}/hub/oauth_callback"
   }
 
   set {
