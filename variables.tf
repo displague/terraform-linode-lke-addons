@@ -12,6 +12,12 @@ variable "gh_token" {
   description = "GH token for triage party"
   sensitive   = true
 }
+variable "gh_admin_users" {
+  default     = []
+  description = "GH admin_users for JupyterHub"
+  type        = list(string)
+}
+
 variable "triage_host" {
   default     = ""
   description = "hostname where triage party will reside"
