@@ -3,8 +3,9 @@ provider "linode" {
 }
 
 module "lke" {
-  source     = "./modules/kube"
-  lke_config = "${path.module}/kube.config"
+  source      = "./modules/kube"
+  lke_config  = "${path.module}/kube.config"
+  k8s_version = var.k8s_version
 }
 
 provider "kubernetes" {
