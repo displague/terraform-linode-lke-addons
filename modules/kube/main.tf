@@ -13,6 +13,12 @@ resource "linode_lke_cluster" "lke" {
       max = var.max_count
     }
   }
+
+  lifecycle {
+    ignore_changes = [
+      pool[0].count,
+    ]
+  }
 }
 
 resource "local_file" "lke_config" {
