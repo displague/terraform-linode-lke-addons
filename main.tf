@@ -46,6 +46,7 @@ module "ingress_nginx" {
 }
 
 module "longhorn" {
+  count      = var.longhorn_enabled ? 1 : 0
   depends_on = [module.lke]
   source     = "./modules/longhorn"
 }

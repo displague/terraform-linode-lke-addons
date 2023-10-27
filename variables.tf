@@ -7,6 +7,11 @@ variable "k8s_version" {
   default     = "1.26"
 }
 
+variable "longhorn_enabled" {
+  default     = false
+  description = "Whether Longhorn should be installed"
+}
+
 variable "gh_token" {
   default     = ""
   description = "GH token for triage party"
