@@ -23,6 +23,7 @@ resource "helm_release" "minecraft" {
       "external-dns.alpha.kubernetes.io/hostname" = var.hostname
       "external-dns.alpha.kubernetes.io/ttl"      = "180"
     }
+    /**
     initContainers = [{
       name = "fix-perms"
       securityContext = {
@@ -37,6 +38,7 @@ resource "helm_release" "minecraft" {
         mountPath = "/data"
       }]
     }]
+    **/
   })]
 
   set {
