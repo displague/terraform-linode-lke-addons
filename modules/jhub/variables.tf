@@ -6,3 +6,4 @@ variable "gh_admin_users" {
   type        = list(string)
   description = "GitHub Admin Users"
 }
+variable "hub_db_volume" { default = "" }

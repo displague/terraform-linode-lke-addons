@@ -61,3 +61,7 @@ variable "jhub_client_secret" {
   default     = ""
   description = "GH client_secret for jhub"
 }
+variable "jhub_db_volume" {
+  default     = ""
+  description = "PVC name for Hub DB Volume"
+}

@@ -77,4 +77,5 @@ module "jhub" {
   client_id      = var.jhub_client_id
   client_secret  = var.jhub_client_secret
   gh_admin_users = var.gh_admin_users
+  hub_db_volume  = var.jhub_db_volume
 }

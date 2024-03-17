@@ -86,6 +86,11 @@ resource "helm_release" "jupyterhub" {
   }
 
   set {
+    name  = "hub.config.Authenticator.auth_login"
+    value = true
+  }
+
+  set {
     name  = "hub.config.GitHubOAuthenticator.client_id"
     value = var.client_id
   }
@@ -108,5 +113,20 @@ resource "helm_release" "jupyterhub" {
   set {
     name  = "hub.config.JupyterHub.authenticator_class"
     value = "github"
+  }
+
+  set {
+    name  = "hub.db.pvc.storageClassName"
+    value = "linode-block-storage-retain"
+  }
+
+  set {
+    name  = "hub.db.pvc.volumeName"
+    value = var.hub_db_volume
+  }
+
+  set {
+    name  = "hub.config.JupyterHub.admin_access"
+    value = false
   }
 }
