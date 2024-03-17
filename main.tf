@@ -52,12 +52,13 @@ module "longhorn" {
 }
 
 module "minecraft" {
-  count      = (var.minecraft_ops != "" && var.minecraft_hostname != "") ? 1 : 0
+  count      = length(var.minecraft)
   depends_on = [module.lke, module.longhorn]
   source     = "./modules/minecraft"
-  ops        = var.minecraft_ops
-  hostname   = var.minecraft_hostname
-  motd       = var.minecraft_motd
+  namespace  = var.minecraft[count.index].namespace
+  ops        = var.minecraft[count.index].ops
+  hostname   = var.minecraft[count.index].hostname
+  motd       = var.minecraft[count.index].motd
 }
 
 module "triage" {

@@ -2,7 +2,7 @@ resource "helm_release" "minecraft" {
   name             = "minecraft"
   repository       = "https://itzg.github.io/minecraft-server-charts/"
   chart            = "minecraft"
-  namespace        = "minecraft"
+  namespace        = var.namespace
   create_namespace = true
 
   set {
@@ -16,6 +16,7 @@ resource "helm_release" "minecraft" {
       ops         = var.ops
       motd        = var.motd
       pvp         = true
+      servicePort = var.port
       jvmXXOpts   = "-XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M"
     }
     serviceAnnotations = {

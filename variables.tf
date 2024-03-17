@@ -27,19 +27,25 @@ variable "triage_host" {
   default     = ""
   description = "hostname where triage party will reside"
 }
-variable "minecraft_ops" {
-  default     = ""
-  description = "minecraft usernames that will receive ops"
-}
 
-variable "minecraft_motd" {
-  default     = ""
-  description = "Minecraft MOTD"
-}
-
-variable "minecraft_hostname" {
-  default     = ""
-  description = "hostname where minecraft will run"
+variable "minecraft" {
+  type = list(object(
+    {
+      namespace = string
+      port      = number
+      ops       = string
+      motd      = string
+      hostname  = string
+    }
+  ))
+  description = <<-EOT
+A list of minecraft servers to deploy. Each object should have the following fields:
+- namespace: the namespace of the minecraft server
+- port: the port to run the minecraft server on
+- ops: a list of minecraft usernames that will receive ops
+- motd: the minecraft MOTD
+- hostname: the hostname where minecraft will run
+EOT
 }
 
 variable "jhub_hostname" {
