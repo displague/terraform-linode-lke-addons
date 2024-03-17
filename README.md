@@ -53,16 +53,15 @@ No resources.
 | <a name="input_example_host"></a> [example\_host](#input\_example\_host) | If set, an ingress will be created with this hostname used. The domain should be one managed by your Linode account. | `any` | n/a | yes |
 | <a name="input_issuer_email"></a> [issuer\_email](#input\_issuer\_email) | An email address for ACME certificate registration. | `any` | n/a | yes |
 | <a name="input_linode_token"></a> [linode\_token](#input\_linode\_token) | Your Linode API Authentication Token. | `any` | n/a | yes |
+| <a name="input_minecraft"></a> [minecraft](#input\_minecraft) | A list of minecraft servers to deploy. Each object should have the following fields:<br>- namespace: the namespace of the minecraft server<br>- port: the port to run the minecraft server on<br>- ops: a list of minecraft usernames that will receive ops<br>- motd: the minecraft MOTD<br>- hostname: the hostname where minecraft will run | <pre>list(object(<br>    {<br>      namespace = string<br>      port      = number<br>      ops       = string<br>      motd      = string<br>      hostname  = string<br>    }<br>  ))</pre> | n/a | yes |
 | <a name="input_gh_admin_users"></a> [gh\_admin\_users](#input\_gh\_admin\_users) | GH admin\_users for JupyterHub | `list(string)` | `[]` | no |
 | <a name="input_gh_token"></a> [gh\_token](#input\_gh\_token) | GH token for triage party | `string` | `""` | no |
 | <a name="input_jhub_client_id"></a> [jhub\_client\_id](#input\_jhub\_client\_id) | GH client\_id for jhub | `string` | `""` | no |
 | <a name="input_jhub_client_secret"></a> [jhub\_client\_secret](#input\_jhub\_client\_secret) | GH client\_secret for jhub | `string` | `""` | no |
+| <a name="input_jhub_db_volume"></a> [jhub\_db\_volume](#input\_jhub\_db\_volume) | PVC name for Hub DB Volume | `string` | `""` | no |
 | <a name="input_jhub_hostname"></a> [jhub\_hostname](#input\_jhub\_hostname) | hostname for jupyter hub | `string` | `""` | no |
 | <a name="input_k8s_version"></a> [k8s\_version](#input\_k8s\_version) | LKE K8s Version | `string` | `"1.26"` | no |
 | <a name="input_longhorn_enabled"></a> [longhorn\_enabled](#input\_longhorn\_enabled) | Whether Longhorn should be installed | `bool` | `false` | no |
-| <a name="input_minecraft_hostname"></a> [minecraft\_hostname](#input\_minecraft\_hostname) | hostname where minecraft will run | `string` | `""` | no |
-| <a name="input_minecraft_motd"></a> [minecraft\_motd](#input\_minecraft\_motd) | Minecraft MOTD | `string` | `""` | no |
-| <a name="input_minecraft_ops"></a> [minecraft\_ops](#input\_minecraft\_ops) | minecraft usernames that will receive ops | `string` | `""` | no |
 | <a name="input_triage_host"></a> [triage\_host](#input\_triage\_host) | hostname where triage party will reside | `string` | `""` | no |
 
 ## Outputs

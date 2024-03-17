@@ -29,6 +29,7 @@ No modules.
 | <a name="input_client_secret"></a> [client\_secret](#input\_client\_secret) | n/a | `any` | n/a | yes |
 | <a name="input_gh_admin_users"></a> [gh\_admin\_users](#input\_gh\_admin\_users) | GitHub Admin Users | `list(string)` | n/a | yes |
 | <a name="input_hostname"></a> [hostname](#input\_hostname) | n/a | `any` | n/a | yes |
+| <a name="input_hub_db_volume"></a> [hub\_db\_volume](#input\_hub\_db\_volume) | n/a | `string` | `""` | no |
 
 ## Outputs
 
