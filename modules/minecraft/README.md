@@ -26,6 +26,8 @@ No modules.
 | <a name="input_hostname"></a> [hostname](#input\_hostname) | n/a | `any` | n/a | yes |
 | <a name="input_motd"></a> [motd](#input\_motd) | n/a | `any` | n/a | yes |
 | <a name="input_ops"></a> [ops](#input\_ops) | n/a | `any` | n/a | yes |
+| <a name="input_namespace"></a> [namespace](#input\_namespace) | n/a | `string` | `"minecraft"` | no |
+| <a name="input_port"></a> [port](#input\_port) | n/a | `number` | `25565` | no |
 
 ## Outputs
 
