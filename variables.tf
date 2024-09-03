@@ -36,6 +36,7 @@ variable "minecraft" {
       ops       = string
       motd      = string
       hostname  = string
+      claim     = string
     }
   ))
   description = <<-EOT
@@ -45,6 +46,7 @@ A list of minecraft servers to deploy. Each object should have the following fie
 - ops: a list of minecraft usernames that will receive ops
 - motd: the minecraft MOTD
 - hostname: the hostname where minecraft will run
+- claim: existing claim
 EOT
 }
 

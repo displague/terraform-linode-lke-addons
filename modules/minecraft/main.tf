@@ -42,9 +42,9 @@ resource "helm_release" "minecraft" {
   })]
 
   set {
-    name = "persistence.dataDir.storageClass"
-    # value = "linode-block-storage-retain"
-    value = "longhorn"
+    name  = "persistence.dataDir.storageClass"
+    value = "linode-block-storage-retain"
+    # value = "longhorn"
   }
   set {
     name  = "persistence.dataDir.enabled"
@@ -53,5 +53,9 @@ resource "helm_release" "minecraft" {
   set {
     name  = "persistence.dataDir.Size"
     value = "10Gi"
+  }
+  set {
+    name  = "persistence.dataDir.existingClaim"
+    value = var.claim
   }
 }

@@ -10,10 +10,6 @@ module "lke" {
 
 provider "kubernetes" {
   config_paths = [module.lke.lke_config]
-
-  experiments {
-    manifest_resource = true
-  }
 }
 
 provider "kubectl" {
@@ -59,6 +55,7 @@ module "minecraft" {
   ops        = var.minecraft[count.index].ops
   hostname   = var.minecraft[count.index].hostname
   motd       = var.minecraft[count.index].motd
+  claim      = var.minecraft[count.index].claim
 }
 
 module "triage" {
