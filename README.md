@@ -51,6 +51,7 @@ No resources.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_example_host"></a> [example\_host](#input\_example\_host) | If set, an ingress will be created with this hostname used. The domain should be one managed by your Linode account. | `any` | n/a | yes |
+| <a name="input_external_dns_token_expiry"></a> [external\_dns\_token\_expiry](#input\_external\_dns\_token\_expiry) | Expiry date for the Linode API token used by external-dns. RFC3339 format. | `string` | n/a | yes |
 | <a name="input_issuer_email"></a> [issuer\_email](#input\_issuer\_email) | An email address for ACME certificate registration. | `any` | n/a | yes |
 | <a name="input_linode_token"></a> [linode\_token](#input\_linode\_token) | Your Linode API Authentication Token. | `any` | n/a | yes |
 | <a name="input_minecraft"></a> [minecraft](#input\_minecraft) | A list of minecraft servers to deploy. Each object should have the following fields:<br>- namespace: the namespace of the minecraft server<br>- port: the port to run the minecraft server on<br>- ops: a list of minecraft usernames that will receive ops<br>- motd: the minecraft MOTD<br>- hostname: the hostname where minecraft will run<br>- claim: existing claim | <pre>list(object(<br>    {<br>      namespace = string<br>      port      = number<br>      ops       = string<br>      motd      = string<br>      hostname  = string<br>      claim     = string<br>    }<br>  ))</pre> | n/a | yes |
