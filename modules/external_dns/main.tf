@@ -1,7 +1,7 @@
 resource "linode_token" "external_dns" {
   label  = "external-dns"
   scopes = "domains:read_write"
-  expiry = "2025-01-01T00:00:00Z"
+  expiry = var.external_dns_token_expiry
 }
 
 resource "kubernetes_namespace" "external_dns" {

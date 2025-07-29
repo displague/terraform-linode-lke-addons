@@ -24,8 +24,9 @@ provider "helm" {
 }
 
 module "external_dns" {
-  depends_on = [module.lke]
-  source     = "./modules/external_dns"
+  depends_on                = [module.lke]
+  source                    = "./modules/external_dns"
+  external_dns_token_expiry = var.external_dns_token_expiry
 }
 
 module "cert_manager" {

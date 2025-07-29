@@ -1,3 +1,7 @@
+variable "external_dns_token_expiry" {
+  description = "Expiry date for the Linode API token used by external-dns. RFC3339 format."
+  type        = string
+}
 variable "linode_token" { description = "Your Linode API Authentication Token." }
 variable "issuer_email" { description = "An email address for ACME certificate registration." }
 variable "example_host" { description = "If set, an ingress will be created with this hostname used. The domain should be one managed by your Linode account." }
