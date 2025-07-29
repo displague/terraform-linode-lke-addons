@@ -24,6 +24,11 @@ resource "helm_release" "jupyterhub" {
   EOT
   ]
 
+  set_sensitive = [{
+    name  = "hub.config.GitHubOAuthenticator.client_secret"
+    value = var.client_secret
+  }]
+
   #set {
   #  name = "ingress.tls"
   #  value = jsonencode([{
@@ -37,96 +42,85 @@ resource "helm_release" "jupyterhub" {
   #  value = "true"
   #}
 
-  set {
-    name  = "hub.db.type"
-    value = "sqlite-pvc"
-  }
+  set = [
+    {
+      name  = "hub.db.type"
+      value = "sqlite-pvc"
+    },
+    {
+      name  = "ingress.annotations.cert-manager\\.io/cluster-issuer"
+      value = "letsencrypt-prod"
+    },
 
-  set {
-    name  = "ingress.annotations.cert-manager\\.io/cluster-issuer"
-    value = "letsencrypt-prod"
-  }
+    #  set {
+    #    name = "ingress.annotations.kubernetes\\.io/ingress\\.class"
+    #    value = "nginx"
+    #  }
+    {
+      name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-body-size"
+      value = "1024m"
+    },
+    {
+      name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-connect-timeout"
+      value = "30"
+      type  = "string"
+    },
+    {
+      name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-read-timeout"
+      value = "1800"
+      type  = "string"
+    },
 
-  #  set {
-  #    name = "ingress.annotations.kubernetes\\.io/ingress\\.class"
-  #    value = "nginx"
-  #  }
+    {
+      name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-send-timeout"
+      value = "1800"
+      type  = "string"
+    },
 
-  set {
-    name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-body-size"
-    value = "1024m"
-  }
+    {
+      name  = "ingress.ingressClassName"
+      value = "nginx"
+    },
+    {
+      name  = "ingress.annotations.use-proxy-protocol"
+      value = "true"
+      type  = "string"
+    },
 
-  set {
-    name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-connect-timeout"
-    value = "30"
-    type  = "string"
-  }
+    {
+      name  = "hub.config.Authenticator.auth_login"
+      value = true
+    },
 
-  set {
-    name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-read-timeout"
-    value = "1800"
-    type  = "string"
-  }
+    {
+      name  = "hub.config.GitHubOAuthenticator.client_id"
+      value = var.client_id
+    },
 
-  set {
-    name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-send-timeout"
-    value = "1800"
-    type  = "string"
-  }
+    {
+      name  = "hub.config.GitHubOAuthenticator.admin_users"
+      value = join(",", var.gh_admin_users)
+    },
+    {
+      name  = "hub.config.GitHubOAuthenticator.oauth_callback_url"
+      value = "https://${var.hostname}/hub/oauth_callback"
+    },
 
-  set {
-    name  = "ingress.ingressClassName"
-    value = "nginx"
-  }
-  set {
-    name  = "ingress.annotations.use-proxy-protocol"
-    value = "true"
-    type  = "string"
-  }
-
-  set {
-    name  = "hub.config.Authenticator.auth_login"
-    value = true
-  }
-
-  set {
-    name  = "hub.config.GitHubOAuthenticator.client_id"
-    value = var.client_id
-  }
-
-  set_sensitive {
-    name  = "hub.config.GitHubOAuthenticator.client_secret"
-    value = var.client_secret
-  }
-
-  set {
-    name  = "hub.config.GitHubOAuthenticator.admin_users"
-    value = join(",", var.gh_admin_users)
-  }
-
-  set {
-    name  = "hub.config.GitHubOAuthenticator.oauth_callback_url"
-    value = "https://${var.hostname}/hub/oauth_callback"
-  }
-
-  set {
-    name  = "hub.config.JupyterHub.authenticator_class"
-    value = "github"
-  }
-
-  set {
-    name  = "hub.db.pvc.storageClassName"
-    value = "linode-block-storage-retain"
-  }
-
-  set {
-    name  = "hub.db.pvc.volumeName"
-    value = var.hub_db_volume
-  }
-
-  set {
-    name  = "hub.config.JupyterHub.admin_access"
-    value = false
-  }
+    {
+      name  = "hub.config.JupyterHub.authenticator_class"
+      value = "github"
+    },
+    {
+      name  = "hub.db.pvc.storageClassName"
+      value = "linode-block-storage-retain"
+    },
+    {
+      name  = "hub.db.pvc.volumeName"
+      value = var.hub_db_volume
+    },
+    {
+      name  = "hub.config.JupyterHub.admin_access"
+      value = false
+    }
+  ]
 }

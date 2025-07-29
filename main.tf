@@ -18,7 +18,7 @@ provider "kubectl" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     config_paths = [module.lke.lke_config]
   }
 }

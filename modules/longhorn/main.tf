@@ -5,8 +5,8 @@ resource "helm_release" "longhorn" {
   namespace        = "longhorn-system"
   create_namespace = true
 
-  set {
+  set = [{
     name  = "persistence.defaultClass"
     value = "false"
-  }
+  }]
 }

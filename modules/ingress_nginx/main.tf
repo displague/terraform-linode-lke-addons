@@ -6,37 +6,32 @@ resource "helm_release" "ingress_nginx" {
   namespace        = "ingress-nginx"
   create_namespace = true
 
-  set {
+  set = [{
     name  = "controller.config.use-proxy-protocol"
     value = true
-  }
-  set {
+    }, {
     name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/linode-loadbalancer-proxy-protocol"
     value = "v2"
-  }
-  set {
+    }, {
     name  = "controller.ingressClassResource.default"
     value = true
-  }
-  set {
+    }, {
     name  = "defaultBackend.enabled"
     value = true
-  }
-  set {
+    }, {
     name  = "defaultBackend.annotations.service\\.beta\\.kubernetes\\.io/linode-loadbalancer-proxy-protocol"
     value = "v2"
-  }
-
+  }]
   # enable legacy fully automated kubernetes.io/tls-acme: "true" annotations
-  #set {
+  #, {
   #name="ingressShim.defaultIssuerName"
   #value="letsencrypt-prod"
   #}
-  #set {
+  #, {
   #name="ingressShim.defaultIssuerKind"
   #value="ClusterIssuer"
   #}
-  #set {
+  #, {
   #name="ingressShim.defaultIssuerGroup"
   #value="cert-manager.io"
   #}

@@ -6,10 +6,10 @@ resource "helm_release" "cert_manager" {
   namespace        = "cert-manager"
   create_namespace = true
 
-  set {
+  set = [{
     name  = "installCRDs"
     value = true
-  }
+  }]
 }
 
 resource "kubectl_manifest" "cert_manager_issuer_prod" {

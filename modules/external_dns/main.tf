@@ -29,13 +29,14 @@ resource "helm_release" "external_dns" {
   force_update      = true
   dependency_update = true
 
-  set {
-    name  = "provider"
-    value = "linode"
-  }
-
-  set {
-    name  = "linode.secretName"
-    value = kubernetes_secret.external_dns.metadata[0].name
-  }
+  set = [
+    {
+      name  = "provider"
+      value = "linode"
+    },
+    {
+      name  = "linode.secretName"
+      value = kubernetes_secret.external_dns.metadata[0].name
+    }
+  ]
 }

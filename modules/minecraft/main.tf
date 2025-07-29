@@ -5,11 +5,6 @@ resource "helm_release" "minecraft" {
   namespace        = var.namespace
   create_namespace = true
 
-  set {
-    name  = "minecraftServer.eula"
-    value = "TRUE"
-  }
-
   values = [jsonencode({
     minecraftServer = {
       serviceType = "LoadBalancer"
@@ -41,21 +36,27 @@ resource "helm_release" "minecraft" {
     **/
   })]
 
-  set {
-    name  = "persistence.dataDir.storageClass"
-    value = "linode-block-storage-retain"
-    # value = "longhorn"
-  }
-  set {
-    name  = "persistence.dataDir.enabled"
-    value = true
-  }
-  set {
-    name  = "persistence.dataDir.Size"
-    value = "10Gi"
-  }
-  set {
-    name  = "persistence.dataDir.existingClaim"
-    value = var.claim
-  }
+  set = [
+    {
+      name  = "minecraftServer.eula"
+      value = "TRUE"
+    },
+    {
+      name  = "persistence.dataDir.storageClass"
+      value = "linode-block-storage-retain"
+      # value = "longhorn"
+    },
+    {
+      name  = "persistence.dataDir.enabled"
+      value = true
+    },
+    {
+      name  = "persistence.dataDir.Size"
+      value = "10Gi"
+    },
+    {
+      name  = "persistence.dataDir.existingClaim"
+      value = var.claim
+    }
+  ]
 }
