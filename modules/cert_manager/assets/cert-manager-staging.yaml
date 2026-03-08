@@ -11,7 +11,8 @@ spec:
       name: acme-staging-issuer-account-key
     server: https://acme-staging-v02.api.letsencrypt.org/directory
     solvers:
-    - http01:
-        ingress:
-          class: nginx
+    - dns01:
+        webhook:
+          groupName: acme.slicen.me
+          solverName: linode
 

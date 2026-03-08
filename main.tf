@@ -33,6 +33,7 @@ module "cert_manager" {
   depends_on   = [module.lke]
   source       = "./modules/cert_manager"
   issuer_email = var.issuer_email
+  linode_api_token = module.external_dns.linode_api_token
 }
 
 module "ingress_nginx" {

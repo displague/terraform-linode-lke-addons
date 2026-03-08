@@ -15,14 +15,38 @@ resource "helm_release" "cert_manager" {
   }]
 }
 
+resource "kubernetes_secret" "linode_credentials" {
+  metadata {
+    name      = "linode-credentials"
+    namespace = helm_release.cert_manager.namespace
+  }
+
+  data = {
+    token = var.linode_api_token
+  }
+}
+
+data "kubectl_path_documents" "linode_webhook" {
+  pattern = "${path.module}/assets/linode-webhook.yaml"
+}
+
+resource "kubectl_manifest" "linode_webhook" {
+  depends_on = [
+    helm_release.cert_manager,
+    kubernetes_secret.linode_credentials
+  ]
+  count     = 14
+  yaml_body = data.kubectl_path_documents.linode_webhook.documents[count.index]
+}
+
 resource "kubectl_manifest" "cert_manager_issuer_prod" {
-  depends_on      = [helm_release.cert_manager]
+  depends_on      = [kubectl_manifest.linode_webhook]
   yaml_body       = templatefile("${path.module}/assets/cert-manager-prod.yaml", { issuer_email = var.issuer_email })
   validate_schema = false
 }
 
 resource "kubectl_manifest" "cert_manager_issuer_staging" {
-  depends_on      = [helm_release.cert_manager]
+  depends_on      = [kubectl_manifest.linode_webhook]
   yaml_body       = templatefile("${path.module}/assets/cert-manager-staging.yaml", { issuer_email = var.issuer_email })
   validate_schema = false
 }

@@ -1,0 +1,308 @@
+---
+# Source: cert-manager-webhook-linode/templates/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cert-manager-webhook-linode
+  namespace: "cert-manager"
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+---
+# Source: cert-manager-webhook-linode/templates/rbac.yaml
+# Grant cert-manager permission to validate using our apiserver
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cert-manager-webhook-linode:domain-solver
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+rules:
+  - apiGroups:
+      - acme.slicen.me
+    resources:
+      - "*"
+    verbs:
+      - "create"
+---
+# Source: cert-manager-webhook-linode/templates/rbac.yaml
+# apiserver gets the auth-delegator role to delegate auth decisions to
+# the core apiserver
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cert-manager-webhook-linode:auth-delegator
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager-webhook-linode
+    namespace: "cert-manager"
+---
+# Source: cert-manager-webhook-linode/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cert-manager-webhook-linode:domain-solver
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cert-manager-webhook-linode:domain-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager
+    namespace: "cert-manager"
+---
+# Source: cert-manager-webhook-linode/templates/rbac.yaml
+# Grant the webhook permission to read the Secret containing the Linode API token
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cert-manager-webhook-linode:secret-reader
+  namespace: "cert-manager"
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: [linode-credentials]
+  verbs: ["get", "watch"]
+---
+# Source: cert-manager-webhook-linode/templates/rbac.yaml
+# Grant the webhook permission to read the ConfigMap containing the Kubernetes
+# apiserver's requestheader-ca-certificate.
+# This ConfigMap is automatically created by the Kubernetes apiserver.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cert-manager-webhook-linode:webhook-authentication-reader
+  namespace: kube-system
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager-webhook-linode
+    namespace: "cert-manager"
+---
+# Source: cert-manager-webhook-linode/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cert-manager-webhook-linode:secret-reader
+  namespace: "cert-manager"
+subjects:
+ - apiGroup: ""
+   kind: ServiceAccount
+   name: cert-manager-webhook-linode
+   namespace: "cert-manager"
+roleRef:
+  kind: Role
+  name: cert-manager-webhook-linode:secret-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: cert-manager-webhook-linode/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: cert-manager-webhook-linode
+  namespace: "cert-manager"
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 443
+      targetPort: https
+      protocol: TCP
+      name: https
+  selector:
+    app: cert-manager-webhook-linode
+    release: cert-manager-webhook-linode
+---
+# Source: cert-manager-webhook-linode/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cert-manager-webhook-linode
+  namespace: "cert-manager"
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cert-manager-webhook-linode
+      release: cert-manager-webhook-linode
+  template:
+    metadata:
+      labels:
+        app: cert-manager-webhook-linode
+        release: cert-manager-webhook-linode
+    spec:
+      serviceAccountName: cert-manager-webhook-linode
+      containers:
+        - name: cert-manager-webhook-linode
+          image: "slicen/cert-manager-webhook-linode:v0.2.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - --tls-cert-file=/tls/tls.crt
+            - --tls-private-key-file=/tls/tls.key
+            - --v=6
+          env:
+            - name: GROUP_NAME
+              value: "acme.slicen.me"
+            - name: POD_SECRET_NAME
+              value: "linode-credentials" 
+            - name: POD_SECRET_KEY
+              value: "token" 
+          ports:
+            - name: https
+              containerPort: 443
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: https
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: https
+          volumeMounts:
+            - name: certs
+              mountPath: /tls
+              readOnly: true
+          resources:
+            {}
+      volumes:
+        - name: certs
+          secret:
+            secretName: cert-manager-webhook-linode-webhook-tls
+---
+# Source: cert-manager-webhook-linode/templates/apiservice.yaml
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.acme.slicen.me
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+  annotations:
+    cert-manager.io/inject-ca-from: "cert-manager/cert-manager-webhook-linode-webhook-tls"
+spec:
+  group: acme.slicen.me
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  service:
+    name: cert-manager-webhook-linode
+    namespace: "cert-manager"
+  version: v1alpha1
+---
+# Source: cert-manager-webhook-linode/templates/pki.yaml
+# Generate a CA Certificate used to sign certificates for the webhook
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-manager-webhook-linode-ca
+  namespace: "cert-manager"
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+spec:
+  secretName: cert-manager-webhook-linode-ca
+  duration: 43800h # 5y
+  issuerRef:
+    name: cert-manager-webhook-linode-selfsign
+  commonName: "ca.cert-manager-webhook-linode.cert-manager"
+  isCA: true
+---
+# Source: cert-manager-webhook-linode/templates/pki.yaml
+# Finally, generate a serving certificate for the webhook to use
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-manager-webhook-linode-webhook-tls
+  namespace: "cert-manager"
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+spec:
+  secretName: cert-manager-webhook-linode-webhook-tls
+  duration: 8760h # 1y
+  issuerRef:
+    name: cert-manager-webhook-linode-ca
+  dnsNames:
+  - cert-manager-webhook-linode
+  - cert-manager-webhook-linode.cert-manager
+  - cert-manager-webhook-linode.cert-manager.svc
+---
+# Source: cert-manager-webhook-linode/templates/pki.yaml
+# Create a selfsigned Issuer, in order to create a root CA certificate for
+# signing webhook serving certificates
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: cert-manager-webhook-linode-selfsign
+  namespace: "cert-manager"
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+spec:
+  selfSigned: {}
+---
+# Source: cert-manager-webhook-linode/templates/pki.yaml
+# Create an Issuer that uses the above generated CA certificate to issue certs
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: cert-manager-webhook-linode-ca
+  namespace: "cert-manager"
+  labels:
+    app: cert-manager-webhook-linode
+    chart: cert-manager-webhook-linode-v0.2.0
+    release: cert-manager-webhook-linode
+    heritage: Helm
+spec:
+  ca:
+    secretName: cert-manager-webhook-linode-ca
+
