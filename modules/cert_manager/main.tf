@@ -9,6 +9,9 @@ resource "helm_release" "cert_manager" {
   set = [{
     name  = "installCRDs"
     value = true
+    }, {
+    name  = "extraArgs[0]"
+    value = "--feature-gates=ACMEHTTP01IngressPathTypeExact=false"
   }]
 }
 
