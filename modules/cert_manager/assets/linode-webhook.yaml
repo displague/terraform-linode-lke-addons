@@ -178,7 +178,6 @@ spec:
           args:
             - --tls-cert-file=/tls/tls.crt
             - --tls-private-key-file=/tls/tls.key
-            - --v=6
           env:
             - name: GROUP_NAME
               value: "acme.slicen.me"
@@ -305,4 +304,5 @@ metadata:
 spec:
   ca:
     secretName: cert-manager-webhook-linode-ca
+
 
