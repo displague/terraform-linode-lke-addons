@@ -35,12 +35,13 @@ variable "triage_host" {
 variable "minecraft" {
   type = list(object(
     {
-      namespace = string
-      port      = number
-      ops       = string
-      motd      = string
-      hostname  = string
-      claim     = string
+      namespace  = string
+      port       = number
+      ops        = string
+      motd       = string
+      hostname   = string
+      claim      = string
+      mc_version = optional(string, "LATEST")
     }
   ))
   description = <<-EOT
@@ -51,6 +52,9 @@ A list of minecraft servers to deploy. Each object should have the following fie
 - motd: the minecraft MOTD
 - hostname: the hostname where minecraft will run
 - claim: existing claim
+- mc_version: (optional) itzg image `VERSION` — pin to a specific minecraft
+  version like "1.21.8" when restoring a world from a much older DataVersion.
+  Defaults to "LATEST".
 EOT
 }
 

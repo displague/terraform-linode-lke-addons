@@ -30,6 +30,18 @@ variable "chart_version" {
   default     = "4.26.4"
 }
 
+variable "mc_version" {
+  type        = string
+  description = <<-EOS
+    Minecraft server version passed to the itzg image (`minecraftServer.version`).
+    Defaults to `LATEST`, which is what most users want. Pin to a specific version
+    (e.g. `"1.21.8"`) when restoring a world from an older DataVersion — the itzg
+    image runs the world's built-in upgrade on start, and skipping several majors
+    at once has been observed to nuke the world during the upgrade cleanup step.
+  EOS
+  default     = "LATEST"
+}
+
 variable "claim" {
   type        = string
   description = <<-EOS

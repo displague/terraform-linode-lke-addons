@@ -58,6 +58,7 @@ module "minecraft" {
   hostname   = var.minecraft[count.index].hostname
   motd       = var.minecraft[count.index].motd
   claim      = var.minecraft[count.index].claim
+  mc_version = try(var.minecraft[count.index].mc_version, "LATEST")
 }
 
 module "triage" {

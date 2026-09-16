@@ -9,6 +9,7 @@ resource "helm_release" "minecraft" {
   values = [jsonencode({
     minecraftServer = {
       serviceType = "LoadBalancer"
+      version     = var.mc_version
       ops         = var.ops
       motd        = var.motd
       pvp         = true
