@@ -1,10 +1,51 @@
+resource "kubernetes_namespace" "minecraft" {
+  metadata {
+    name = var.namespace
+  }
+}
+
+# Terraform-managed PVC for the minecraft datadir. Owning the PVC out here
+# (rather than letting the itzg chart mint one via `persistence.dataDir` alone)
+# means a `helm uninstall` — or the `terraform` provider destroying the release
+# — doesn't leave the PV `Released` and cause a new PV to be provisioned on the
+# next apply. See README.md for the migration story if you have an existing
+# chart-managed PVC.
+resource "kubernetes_persistent_volume_claim" "datadir" {
+  metadata {
+    name      = var.claim
+    namespace = kubernetes_namespace.minecraft.metadata[0].name
+    labels = {
+      "app.kubernetes.io/managed-by"        = "terraform"
+      "app.kubernetes.io/name"              = "minecraft"
+      "app.kubernetes.io/component"         = "datadir"
+    }
+  }
+
+  spec {
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = var.storage_class
+    resources {
+      requests = {
+        storage = var.storage_size
+      }
+    }
+    # When rebinding an existing Retain PV (post-outage recovery or moving a
+    # world between environments), set var.volume_name so the PVC lands on the
+    # exact PV. Leave "" for dynamic provisioning.
+    volume_name = var.volume_name != "" ? var.volume_name : null
+  }
+
+  # Don't block terraform apply on a Retain PV that hasn't been re-associated
+  # yet — the pod will wait once it's bound.
+  wait_until_bound = false
+}
+
 resource "helm_release" "minecraft" {
-  name             = "minecraft"
-  repository       = "https://itzg.github.io/minecraft-server-charts/"
-  chart            = "minecraft"
-  version          = var.chart_version
-  namespace        = var.namespace
-  create_namespace = true
+  name       = "minecraft"
+  repository = "https://itzg.github.io/minecraft-server-charts/"
+  chart      = "minecraft"
+  version    = var.chart_version
+  namespace  = kubernetes_namespace.minecraft.metadata[0].name
 
   values = [jsonencode({
     minecraftServer = {
@@ -20,22 +61,6 @@ resource "helm_release" "minecraft" {
       "external-dns.alpha.kubernetes.io/hostname" = var.hostname
       "external-dns.alpha.kubernetes.io/ttl"      = "180"
     }
-    /**
-    initContainers = [{
-      name = "fix-perms"
-      securityContext = {
-        privileged             = false
-        readOnlyRootFilesystem = false
-        runAsUser              = 0
-      }
-      image   = "busybox"
-      command = ["sh", "-c", "chown -R 1000:1000 /data; sleep 30"]
-      volumeMounts = [{
-        name      = "datadir"
-        mountPath = "/data"
-      }]
-    }]
-    **/
   })]
 
   set = [
@@ -44,21 +69,25 @@ resource "helm_release" "minecraft" {
       value = "TRUE"
     },
     {
-      name  = "persistence.dataDir.storageClass"
-      value = "linode-block-storage-retain"
-      # value = "longhorn"
-    },
-    {
       name  = "persistence.dataDir.enabled"
       value = true
     },
+    # Tie the chart's `existingClaim` to the terraform-managed PVC's name so
+    # helm never provisions its own PVC. storageClass/size stay set here for
+    # completeness but the chart won't act on them when `existingClaim` is set.
+    {
+      name  = "persistence.dataDir.storageClass"
+      value = var.storage_class
+    },
     {
       name  = "persistence.dataDir.Size"
-      value = "10Gi"
+      value = var.storage_size
     },
     {
       name  = "persistence.dataDir.existingClaim"
-      value = var.claim
+      value = kubernetes_persistent_volume_claim.datadir.metadata[0].name
     }
   ]
+
+  depends_on = [kubernetes_persistent_volume_claim.datadir]
 }
