@@ -44,6 +44,10 @@ resource "helm_release" "jupyterhub" {
 
   set = [
     {
+      name  = "proxy.service.type"
+      value = var.proxy_service_type
+    },
+    {
       name  = "hub.db.type"
       value = "sqlite-pvc"
     },

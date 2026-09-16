@@ -73,3 +73,18 @@ variable "storage_class" {
   description = "Storage class for the datadir PVC. `Retain` reclaim on this class is what makes recovery possible when things go sideways."
   default     = "linode-block-storage-retain"
 }
+
+variable "service_type" {
+  type        = string
+  description = <<-EOS
+    Kubernetes Service type for the minecraft server. Default `LoadBalancer`
+    provisions a dedicated Linode NodeBalancer per server. Set to `ClusterIP`
+    when fronting the server via a shared entrypoint like `modules/mc_router`.
+  EOS
+  default     = "LoadBalancer"
+
+  validation {
+    condition     = contains(["LoadBalancer", "ClusterIP", "NodePort"], var.service_type)
+    error_message = "service_type must be one of LoadBalancer, ClusterIP, NodePort."
+  }
+}
