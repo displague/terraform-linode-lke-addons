@@ -26,11 +26,13 @@ No modules.
 
 ## Inputs
 
-| Name | Description | Type | Default |
-|------|-------------|------|---------|
-| external_dns_token_expiry | Expiry date for the Linode API token used by external-dns. RFC3339 format. | string | n/a |
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_external_dns_token_expiry"></a> [external\_dns\_token\_expiry](#input\_external\_dns\_token\_expiry) | Expiry date for the Linode API token used by external-dns. RFC3339 format. | `string` | n/a | yes |
 
 ## Outputs
 
-No outputs.
+| Name | Description |
+|------|-------------|
+| <a name="output_linode_api_token"></a> [linode\_api\_token](#output\_linode\_api\_token) | n/a |
 <!-- END_TF_DOCS -->
