@@ -27,6 +27,7 @@ terraform apply
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.6 |
 | <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 3.0.0 |
+| <a name="requirement_http"></a> [http](#requirement\_http) | >= 3.4.0 |
 | <a name="requirement_kubectl"></a> [kubectl](#requirement\_kubectl) | >= 1.19.0 |
 | <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 2.38.0 |
 | <a name="requirement_linode"></a> [linode](#requirement\_linode) | >= 3.1.0 |
@@ -34,7 +35,9 @@ terraform apply
 
 ## Providers
 
-No providers.
+| Name | Version |
+|------|---------|
+| <a name="provider_http"></a> [http](#provider\_http) | 3.6.2 |
 
 ## Modules
 
@@ -51,7 +54,10 @@ No providers.
 
 ## Resources
 
-No resources.
+| Name | Type |
+|------|------|
+| [http_http.my_ipv4](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
+| [http_http.my_ipv6](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 
 ## Inputs
 
@@ -69,6 +75,10 @@ No resources.
 | <a name="input_jhub_db_volume"></a> [jhub\_db\_volume](#input\_jhub\_db\_volume) | PVC name for Hub DB Volume | `string` | `""` | no |
 | <a name="input_jhub_hostname"></a> [jhub\_hostname](#input\_jhub\_hostname) | hostname for jupyter hub | `string` | `""` | no |
 | <a name="input_k8s_version"></a> [k8s\_version](#input\_k8s\_version) | LKE K8s Version. Keep within Linode's currently-supported window (`linode-cli lke versions-list`). | `string` | `"1.36"` | no |
+| <a name="input_lke_acl_allow_my_ip"></a> [lke\_acl\_allow\_my\_ip](#input\_lke\_acl\_allow\_my\_ip) | Also add whatever public IPv4 the terraform-runner has right now to the<br>ACL allow list. Uses `data "http"` against ipv4.icanhazip.com. Handy for<br>home / office runners on residential NAT — but be aware the IP can<br>change, in which case a subsequent apply is needed to keep access.<br>Ignored if `lke_acl_enabled = false`. | `bool` | `false` | no |
+| <a name="input_lke_acl_enabled"></a> [lke\_acl\_enabled](#input\_lke\_acl\_enabled) | Manage the LKE control-plane ACL from terraform. When `false` the module<br>leaves the ACL untouched (Cloud UI / API manages it). When `true`,<br>terraform applies the enabled=true policy with the ipv4 / ipv6 lists<br>below plus (optionally) the caller's current public IP. | `bool` | `false` | no |
+| <a name="input_lke_acl_ipv4"></a> [lke\_acl\_ipv4](#input\_lke\_acl\_ipv4) | IPv4 CIDRs to allow through the LKE control-plane ACL. Ignored if `lke_acl_enabled = false`. | `list(string)` | `[]` | no |
+| <a name="input_lke_acl_ipv6"></a> [lke\_acl\_ipv6](#input\_lke\_acl\_ipv6) | IPv6 CIDRs to allow through the LKE control-plane ACL. Ignored if `lke_acl_enabled = false`. | `list(string)` | `[]` | no |
 | <a name="input_longhorn_enabled"></a> [longhorn\_enabled](#input\_longhorn\_enabled) | Whether Longhorn should be installed | `bool` | `false` | no |
 | <a name="input_triage_host"></a> [triage\_host](#input\_triage\_host) | hostname where triage party will reside | `string` | `""` | no |
 
