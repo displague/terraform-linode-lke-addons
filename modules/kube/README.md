@@ -26,7 +26,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_lke_config"></a> [lke\_config](#input\_lke\_config) | n/a | `any` | n/a | yes |
-| <a name="input_k8s_version"></a> [k8s\_version](#input\_k8s\_version) | n/a | `string` | `"1.26"` | no |
+| <a name="input_k8s_version"></a> [k8s\_version](#input\_k8s\_version) | n/a | `string` | `"1.36"` | no |
 | <a name="input_max_count"></a> [max\_count](#input\_max\_count) | n/a | `number` | `3` | no |
 | <a name="input_min_count"></a> [min\_count](#input\_min\_count) | n/a | `number` | `1` | no |
 

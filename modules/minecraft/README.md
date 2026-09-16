@@ -79,8 +79,10 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_hostname"></a> [hostname](#input\_hostname) | DNS Hostname for the server | `any` | n/a | yes |
 | <a name="input_motd"></a> [motd](#input\_motd) | Message of the Day | `any` | n/a | yes |
-| <a name="input_ops"></a> [ops](#input\_ops) | Admin accounts for minecraft server. These account names must be valid. | `any` | n/a | yes |
+| <a name="input_ops"></a> [ops](#input\_ops) | Comma-separated Minecraft usernames granted op on this server. Names are<br>resolved to UUIDs via Mojang/PlayerDB at container start; a stale (renamed<br>or deleted) name will crash-loop the pod on next recreate. See README.md<br>for how to check names and find current names for known UUIDs before<br>running `terraform apply`. | `any` | n/a | yes |
+| <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | itzg/minecraft-server-charts chart version. Pin to what your running deployment expects; 4.x→5.x is a breaking upgrade. | `string` | `"4.26.4"` | no |
 | <a name="input_claim"></a> [claim](#input\_claim) | Existing claim to reuse. Between reuses be sure to clear the claimRef of the Released pv. `kubectl patch pv $PV_NAME -p '{"spec":{"claimRef": null}}'` | `string` | `""` | no |
+| <a name="input_mc_version"></a> [mc\_version](#input\_mc\_version) | Minecraft server version passed to the itzg image (`minecraftServer.version`).<br>Defaults to `LATEST`, which is what most users want. Pin to a specific version<br>(e.g. `"1.21.8"`) when restoring a world from an older DataVersion — the itzg<br>image runs the world's built-in upgrade on start, and skipping several majors<br>at once has been observed to nuke the world during the upgrade cleanup step. | `string` | `"LATEST"` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | n/a | `string` | `"minecraft"` | no |
 | <a name="input_port"></a> [port](#input\_port) | n/a | `number` | `25565` | no |
 
