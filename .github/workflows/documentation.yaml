@@ -37,7 +37,7 @@ jobs:
 
       - name: Create Pull Request
         if: steps.terraform-docs.outputs.num_changed != '0'
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v7
         with:
           commit-message: 'generate-terraform-docs: automated action'
           committer: GitHub <noreply@github.com>
@@ -45,7 +45,10 @@ jobs:
           title: 'generate-terraform-docs: automated action'
           body: |
             Update terraform docs
-          branch-suffix: timestamp
+          # Stable branch name — the action UPSERTs a PR onto this branch,
+          # so back-to-back doc-regen runs update the existing open PR
+          # instead of cascading new ones that conflict with each other.
+          branch: bot/generate-terraform-docs
           base: main
           signoff: true
           delete-branch: true
