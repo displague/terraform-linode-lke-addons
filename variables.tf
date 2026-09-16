@@ -7,8 +7,8 @@ variable "issuer_email" { description = "An email address for ACME certificate r
 variable "example_host" { description = "If set, an ingress will be created with this hostname used. The domain should be one managed by your Linode account." }
 
 variable "k8s_version" {
-  description = "LKE K8s Version"
-  default     = "1.26"
+  description = "LKE K8s Version. Keep within Linode's currently-supported window (`linode-cli lke versions-list`)."
+  default     = "1.36"
 }
 
 variable "longhorn_enabled" {

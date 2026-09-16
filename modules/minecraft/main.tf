@@ -2,6 +2,7 @@ resource "helm_release" "minecraft" {
   name             = "minecraft"
   repository       = "https://itzg.github.io/minecraft-server-charts/"
   chart            = "minecraft"
+  version          = var.chart_version
   namespace        = var.namespace
   create_namespace = true
 

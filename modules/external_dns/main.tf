@@ -37,6 +37,12 @@ resource "helm_release" "external_dns" {
     {
       name  = "linode.secretName"
       value = kubernetes_secret.external_dns.metadata[0].name
+    },
+    {
+      # Bitnami moved 2025-era tags out of the free `bitnami/*` namespace;
+      # the equivalent tags remain in `bitnamilegacy/*`.
+      name  = "image.repository"
+      value = "bitnamilegacy/external-dns"
     }
   ]
 }

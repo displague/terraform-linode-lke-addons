@@ -1,5 +1,11 @@
 variable "ops" {
-  description = "Admin accounts for minecraft server. These account names must be valid."
+  description = <<-EOS
+    Comma-separated Minecraft usernames granted op on this server. Names are
+    resolved to UUIDs via Mojang/PlayerDB at container start; a stale (renamed
+    or deleted) name will crash-loop the pod on next recreate. See README.md
+    for how to check names and find current names for known UUIDs before
+    running `terraform apply`.
+  EOS
 }
 
 variable "motd" {
@@ -16,6 +22,12 @@ variable "namespace" {
 
 variable "port" {
   default = 25565
+}
+
+variable "chart_version" {
+  type        = string
+  description = "itzg/minecraft-server-charts chart version. Pin to what your running deployment expects; 4.x→5.x is a breaking upgrade."
+  default     = "4.26.4"
 }
 
 variable "claim" {
