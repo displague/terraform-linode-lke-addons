@@ -75,3 +75,38 @@ variable "jhub_db_volume" {
   default     = ""
   description = "PVC name for Hub DB Volume"
 }
+
+variable "lke_acl_enabled" {
+  type        = bool
+  default     = false
+  description = <<-EOS
+    Manage the LKE control-plane ACL from terraform. When `false` the module
+    leaves the ACL untouched (Cloud UI / API manages it). When `true`,
+    terraform applies the enabled=true policy with the ipv4 / ipv6 lists
+    below plus (optionally) the caller's current public IP.
+  EOS
+}
+
+variable "lke_acl_allow_my_ip" {
+  type        = bool
+  default     = false
+  description = <<-EOS
+    Also add whatever public IPv4 the terraform-runner has right now to the
+    ACL allow list. Uses `data "http"` against ipv4.icanhazip.com. Handy for
+    home / office runners on residential NAT — but be aware the IP can
+    change, in which case a subsequent apply is needed to keep access.
+    Ignored if `lke_acl_enabled = false`.
+  EOS
+}
+
+variable "lke_acl_ipv4" {
+  type        = list(string)
+  default     = []
+  description = "IPv4 CIDRs to allow through the LKE control-plane ACL. Ignored if `lke_acl_enabled = false`."
+}
+
+variable "lke_acl_ipv6" {
+  type        = list(string)
+  default     = []
+  description = "IPv6 CIDRs to allow through the LKE control-plane ACL. Ignored if `lke_acl_enabled = false`."
+}
