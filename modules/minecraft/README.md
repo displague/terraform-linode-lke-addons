@@ -93,6 +93,7 @@ No requirements.
 | Name | Version |
 |------|---------|
 | <a name="provider_helm"></a> [helm](#provider\_helm) | n/a |
+| <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | n/a |
 
 ## Modules
 
@@ -103,6 +104,8 @@ No modules.
 | Name | Type |
 |------|------|
 | [helm_release.minecraft](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
+| [kubernetes_namespace.minecraft](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/namespace) | resource |
+| [kubernetes_persistent_volume_claim.datadir](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/persistent_volume_claim) | resource |
 
 ## Inputs
 
@@ -112,10 +115,13 @@ No modules.
 | <a name="input_motd"></a> [motd](#input\_motd) | Message of the Day | `any` | n/a | yes |
 | <a name="input_ops"></a> [ops](#input\_ops) | Comma-separated Minecraft usernames granted op on this server. Names are<br>resolved to UUIDs via Mojang/PlayerDB at container start; a stale (renamed<br>or deleted) name will crash-loop the pod on next recreate. See README.md<br>for how to check names and find current names for known UUIDs before<br>running `terraform apply`. | `any` | n/a | yes |
 | <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | itzg/minecraft-server-charts chart version. Pin to what your running deployment expects; 4.x→5.x is a breaking upgrade. | `string` | `"4.26.4"` | no |
-| <a name="input_claim"></a> [claim](#input\_claim) | Existing claim to reuse. Between reuses be sure to clear the claimRef of the Released pv. `kubectl patch pv $PV_NAME -p '{"spec":{"claimRef": null}}'` | `string` | `""` | no |
+| <a name="input_claim"></a> [claim](#input\_claim) | Name of the PVC the module owns and passes to the chart via `existingClaim`.<br>The module creates this PVC as a first-class terraform resource so a chart<br>reinstall or version bump doesn't leave the previous PV `Released` and mint<br>a new one. Default name preserves the historical PVC naming. | `string` | `"minecraft-minecraft-datadir"` | no |
 | <a name="input_mc_version"></a> [mc\_version](#input\_mc\_version) | Minecraft server version passed to the itzg image (`minecraftServer.version`).<br>Defaults to `LATEST`, which is what most users want. Pin to a specific version<br>(e.g. `"1.21.8"`) when restoring a world from an older DataVersion — the itzg<br>image runs the world's built-in upgrade on start, and skipping several majors<br>at once has been observed to nuke the world during the upgrade cleanup step. | `string` | `"LATEST"` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | n/a | `string` | `"minecraft"` | no |
 | <a name="input_port"></a> [port](#input\_port) | n/a | `number` | `25565` | no |
+| <a name="input_storage_class"></a> [storage\_class](#input\_storage\_class) | Storage class for the datadir PVC. `Retain` reclaim on this class is what makes recovery possible when things go sideways. | `string` | `"linode-block-storage-retain"` | no |
+| <a name="input_storage_size"></a> [storage\_size](#input\_storage\_size) | PVC size for the datadir. | `string` | `"10Gi"` | no |
+| <a name="input_volume_name"></a> [volume\_name](#input\_volume\_name) | Optional pre-existing PersistentVolume to bind the PVC to (recovery /<br>world-move workflow). Leave "" to dynamic-provision a fresh PV. | `string` | `""` | no |
 
 ## Outputs
 
