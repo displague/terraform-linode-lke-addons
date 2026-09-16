@@ -2,10 +2,44 @@ provider "linode" {
   token = var.linode_token
 }
 
+# Fetch the caller's current public IPs (v4 and v6) when they opt in to
+# allowlisting themselves through the control-plane ACL. Kept in
+# `hashicorp/http` (an official provider) rather than a null_resource + curl.
+# Both endpoints are queried; on a dual-stack runner both succeed, on
+# single-stack the unreachable side will error the plan — split the flag if
+# your runner is IPv4-only or IPv6-only.
+data "http" "my_ipv4" {
+  count = var.lke_acl_enabled && var.lke_acl_allow_my_ip ? 1 : 0
+  url   = "https://ipv4.icanhazip.com"
+  retry {
+    attempts = 3
+  }
+}
+
+data "http" "my_ipv6" {
+  count = var.lke_acl_enabled && var.lke_acl_allow_my_ip ? 1 : 0
+  url   = "https://ipv6.icanhazip.com"
+  retry {
+    attempts = 3
+  }
+}
+
 module "lke" {
   source      = "./modules/kube"
   lke_config  = "${path.module}/kube.config"
   k8s_version = var.k8s_version
+
+  control_plane_acl = var.lke_acl_enabled ? {
+    enabled = true
+    ipv4 = distinct(concat(
+      var.lke_acl_ipv4,
+      var.lke_acl_allow_my_ip ? ["${trimspace(data.http.my_ipv4[0].response_body)}/32"] : [],
+    ))
+    ipv6 = distinct(concat(
+      var.lke_acl_ipv6,
+      var.lke_acl_allow_my_ip ? ["${trimspace(data.http.my_ipv6[0].response_body)}/128"] : [],
+    ))
+  } : null
 }
 
 provider "kubernetes" {
