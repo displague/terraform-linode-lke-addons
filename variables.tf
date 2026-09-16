@@ -32,16 +32,29 @@ variable "triage_host" {
   description = "hostname where triage party will reside"
 }
 
+variable "mc_router_enabled" {
+  type        = bool
+  description = <<-EOS
+    When true, deploy `modules/mc_router` (a single LoadBalancer that routes
+    all minecraft traffic by handshake hostname) and force every entry in
+    `var.minecraft` to `service_type = ClusterIP`. Consolidates N per-server
+    NodeBalancers down to one. Requires clients to keep dialing the same
+    per-server hostnames.
+  EOS
+  default     = false
+}
+
 variable "minecraft" {
   type = list(object(
     {
-      namespace  = string
-      port       = number
-      ops        = string
-      motd       = string
-      hostname   = string
-      claim      = string
-      mc_version = optional(string, "LATEST")
+      namespace    = string
+      port         = number
+      ops          = string
+      motd         = string
+      hostname     = string
+      claim        = string
+      mc_version   = optional(string, "LATEST")
+      service_type = optional(string, "LoadBalancer")
     }
   ))
   description = <<-EOT

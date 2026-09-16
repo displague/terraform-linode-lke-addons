@@ -84,15 +84,28 @@ module "longhorn" {
 }
 
 module "minecraft" {
-  count      = length(var.minecraft)
-  depends_on = [module.lke, module.longhorn]
-  source     = "./modules/minecraft"
-  namespace  = var.minecraft[count.index].namespace
-  ops        = var.minecraft[count.index].ops
-  hostname   = var.minecraft[count.index].hostname
-  motd       = var.minecraft[count.index].motd
-  claim      = var.minecraft[count.index].claim
-  mc_version = try(var.minecraft[count.index].mc_version, "LATEST")
+  count        = length(var.minecraft)
+  depends_on   = [module.lke, module.longhorn]
+  source       = "./modules/minecraft"
+  namespace    = var.minecraft[count.index].namespace
+  ops          = var.minecraft[count.index].ops
+  hostname     = var.minecraft[count.index].hostname
+  motd         = var.minecraft[count.index].motd
+  claim        = var.minecraft[count.index].claim
+  mc_version   = try(var.minecraft[count.index].mc_version, "LATEST")
+  service_type = var.mc_router_enabled ? "ClusterIP" : try(var.minecraft[count.index].service_type, "LoadBalancer")
+}
+
+module "mc_router" {
+  count      = var.mc_router_enabled && length(var.minecraft) > 0 ? 1 : 0
+  depends_on = [module.lke, module.minecraft]
+  source     = "./modules/mc_router"
+  mappings = [
+    for m in var.minecraft : {
+      hostname = m.hostname
+      target   = "minecraft.${m.namespace}.svc.cluster.local:${m.port}"
+    }
+  ]
 }
 
 module "triage" {

@@ -15,9 +15,9 @@ resource "kubernetes_persistent_volume_claim" "datadir" {
     name      = var.claim
     namespace = kubernetes_namespace.minecraft.metadata[0].name
     labels = {
-      "app.kubernetes.io/managed-by"        = "terraform"
-      "app.kubernetes.io/name"              = "minecraft"
-      "app.kubernetes.io/component"         = "datadir"
+      "app.kubernetes.io/managed-by" = "terraform"
+      "app.kubernetes.io/name"       = "minecraft"
+      "app.kubernetes.io/component"  = "datadir"
     }
   }
 
@@ -49,7 +49,7 @@ resource "helm_release" "minecraft" {
 
   values = [jsonencode({
     minecraftServer = {
-      serviceType = "LoadBalancer"
+      serviceType = var.service_type
       version     = var.mc_version
       ops         = var.ops
       motd        = var.motd
@@ -57,10 +57,13 @@ resource "helm_release" "minecraft" {
       servicePort = var.port
       jvmXXOpts   = "-XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M"
     }
-    serviceAnnotations = {
+    # Only annotate the Service for external-dns when we're the ones owning
+    # the public DNS name (i.e. the LoadBalancer case). When routed via
+    # mc-router, the router's own LB Service owns the DNS records.
+    serviceAnnotations = var.service_type == "LoadBalancer" ? {
       "external-dns.alpha.kubernetes.io/hostname" = var.hostname
       "external-dns.alpha.kubernetes.io/ttl"      = "180"
-    }
+    } : {}
   })]
 
   set = [
