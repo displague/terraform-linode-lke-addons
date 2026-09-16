@@ -3,6 +3,37 @@
 Wraps the `itzg/minecraft-server-charts` Helm chart with a Linode-friendly default
 (LoadBalancer service + block-storage PVC) and takes ops/motd/hostname/claim inputs.
 
+### PVC ownership
+
+The module creates its own `kubernetes_persistent_volume_claim` and passes its
+name to the chart as `persistence.dataDir.existingClaim`. Terraform, not the
+Helm chart, is the source of truth for the PVC's identity — that way a
+`helm uninstall` or a chart-version bump doesn't leave the PV `Released` and
+mint a new one on the next `terraform apply` (which is how orphan PVs have
+accumulated on this cluster historically).
+
+Inputs:
+- `claim` — name of the PVC. Defaults to `"minecraft-minecraft-datadir"`, the
+  historical chart-generated name.
+- `volume_name` — optional pre-existing PV to bind. Set this when restoring a
+  world from a `Retain`-preserved PV. Leave empty for dynamic provisioning.
+- `storage_size` (default `"10Gi"`), `storage_class` (default
+  `"linode-block-storage-retain"`).
+
+#### Migrating an existing chart-managed PVC
+
+If your cluster already has a chart-managed PVC for a running minecraft
+release, `terraform apply` after upgrading this module will fail because the
+PVC already exists and isn't in state. Import it first, per instance:
+
+```sh
+terraform import 'module.minecraft[0].kubernetes_namespace.minecraft' minecraft
+terraform import 'module.minecraft[0].kubernetes_persistent_volume_claim.datadir' minecraft/minecraft-minecraft-datadir
+```
+
+Repeat for each element of the `minecraft` list. After the import terraform
+will see the PVC and simply own it going forward.
+
 ### Watch out: `ops` and Minecraft username renames
 
 The `ops` input is a comma-separated list of **current** Minecraft usernames. On

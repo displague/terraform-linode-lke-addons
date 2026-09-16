@@ -45,7 +45,31 @@ variable "mc_version" {
 variable "claim" {
   type        = string
   description = <<-EOS
-    Existing claim to reuse. Between reuses be sure to clear the claimRef of the Released pv. `kubectl patch pv $PV_NAME -p '{"spec":{"claimRef": null}}'`
+    Name of the PVC the module owns and passes to the chart via `existingClaim`.
+    The module creates this PVC as a first-class terraform resource so a chart
+    reinstall or version bump doesn't leave the previous PV `Released` and mint
+    a new one. Default name preserves the historical PVC naming.
+  EOS
+  default     = "minecraft-minecraft-datadir"
+}
+
+variable "volume_name" {
+  type        = string
+  description = <<-EOS
+    Optional pre-existing PersistentVolume to bind the PVC to (recovery /
+    world-move workflow). Leave "" to dynamic-provision a fresh PV.
   EOS
   default     = ""
+}
+
+variable "storage_size" {
+  type        = string
+  description = "PVC size for the datadir."
+  default     = "10Gi"
+}
+
+variable "storage_class" {
+  type        = string
+  description = "Storage class for the datadir PVC. `Retain` reclaim on this class is what makes recovery possible when things go sideways."
+  default     = "linode-block-storage-retain"
 }
