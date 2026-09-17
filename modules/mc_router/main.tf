@@ -8,13 +8,18 @@
 # so the cluster ends up with a single Linode NodeBalancer total.
 
 locals {
-  # When mc-router is asked to share an existing NB, ccm-linode needs both:
-  # - `nodebalancer-id`: adopt an existing NB rather than create one
-  # - `preserve`: don't delete the shared NB if this Service is deleted
-  #   (that NB belongs to the other Service — ingress-nginx typically).
+  # `preserve` says "don't delete the underlying NB if the Service is
+  # deleted". Two cases:
+  #  - We own our NB (share_nodebalancer_id == null): the NB is disposable
+  #    (external-dns keeps DNS in sync, no cert is bound to the IP).
+  #    Explicit `false` to defend against a future default flip.
+  #  - We share someone else's NB: MUST NOT delete it on Service delete,
+  #    since it belongs to the other Service (ingress-nginx typically) and
+  #    that Service didn't ask for its NB to be reaped.
+  preserve_value = var.share_nodebalancer_id == null ? "false" : "true"
+
   share_annotations = var.share_nodebalancer_id == null ? {} : {
     "service.beta.kubernetes.io/linode-loadbalancer-nodebalancer-id" = tostring(var.share_nodebalancer_id)
-    "service.beta.kubernetes.io/linode-loadbalancer-preserve"        = "true"
   }
 }
 
@@ -36,8 +41,9 @@ resource "helm_release" "mc_router" {
         # NB-share annotations so both drive the same Service.
         annotations = merge(
           {
-            "external-dns.alpha.kubernetes.io/hostname" = join(",", [for m in var.mappings : m.hostname])
-            "external-dns.alpha.kubernetes.io/ttl"      = "180"
+            "external-dns.alpha.kubernetes.io/hostname"              = join(",", [for m in var.mappings : m.hostname])
+            "external-dns.alpha.kubernetes.io/ttl"                   = "180"
+            "service.beta.kubernetes.io/linode-loadbalancer-preserve" = local.preserve_value
           },
           local.share_annotations,
         )

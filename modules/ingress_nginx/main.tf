@@ -13,6 +13,16 @@ resource "helm_release" "ingress_nginx" {
     name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/linode-loadbalancer-proxy-protocol"
     value = "v2"
     }, {
+    # `preserve = false` is ccm-linode's default, but state it explicitly:
+    # this NodeBalancer is disposable — nothing outside the cluster is glued
+    # to its IP (external-dns keeps the DNS records in sync, cert-manager is
+    # not bound to a specific IP). If a future ccm-linode default flips or
+    # something else annotates `preserve=true` behind our back, we don't
+    # want a stale NB piling up rental cost.
+    name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/linode-loadbalancer-preserve"
+    value = "false"
+    type  = "string"
+    }, {
     name  = "controller.ingressClassResource.default"
     value = true
     }, {
