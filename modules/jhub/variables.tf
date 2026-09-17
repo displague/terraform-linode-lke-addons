@@ -6,7 +6,39 @@ variable "gh_admin_users" {
   type        = list(string)
   description = "GitHub Admin Users"
 }
-variable "hub_db_volume" { default = "" }
+
+variable "hub_db_volume" {
+  type        = string
+  default     = ""
+  description = <<-EOS
+    Optional pre-existing PersistentVolume name to bind the hub sqlite PVC
+    to. Set this when adopting the module for an existing chart-managed
+    PVC (`Retain` policy preserves the PV across the migration). Leave ""
+    to let the storage class dynamically provision a fresh PV.
+  EOS
+}
+
+variable "hub_db_claim" {
+  type        = string
+  default     = "hub-db-dir"
+  description = <<-EOS
+    Name of the terraform-managed PVC that stores the hub sqlite database.
+    Default matches the historical chart-generated name for zero-downtime
+    migration from `hub.db.type = sqlite-pvc`.
+  EOS
+}
+
+variable "hub_db_storage_size" {
+  type        = string
+  default     = "10Gi"
+  description = "Size of the hub sqlite PVC. 10Gi is the historical chart default via linode-block-storage."
+}
+
+variable "hub_db_storage_class" {
+  type        = string
+  default     = "linode-block-storage-retain"
+  description = "Storage class for the hub sqlite PVC. `Retain` reclaim is what makes recovery possible when things go sideways."
+}
 
 variable "proxy_service_type" {
   type        = string
