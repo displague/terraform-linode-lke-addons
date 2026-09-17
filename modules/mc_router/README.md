@@ -65,6 +65,7 @@ No modules.
 | <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | itzg/mc-router chart version. Pinned so upstream changes don't silently roll out. | `string` | `"1.5.0"` | no |
 | <a name="input_external_port"></a> [external\_port](#input\_external\_port) | External Minecraft port exposed by the mc-router LoadBalancer Service. | `number` | `25565` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Kubernetes namespace to install mc-router into. | `string` | `"mc-router"` | no |
+| <a name="input_share_nodebalancer_id"></a> [share\_nodebalancer\_id](#input\_share\_nodebalancer\_id) | Optional existing Linode NodeBalancer id to piggyback onto (typically<br>the id of the NB fronting ingress-nginx). ccm-linode adds a port<br>config for `external_port` to that NB instead of provisioning a<br>dedicated one for mc-router. Ports across the consuming Services must<br>not collide — mc-router on 25565 slots alongside ingress-nginx on<br>80/443 without conflict.<br><br>Also sets the `preserve` annotation so `helm uninstall mc-router`<br>doesn't delete the shared NB (it belongs to the other Service).<br><br>Uses ccm-linode's<br>`service.beta.kubernetes.io/linode-loadbalancer-nodebalancer-id`<br>annotation — see<br>https://github.com/linode/linode-cloud-controller-manager/blob/main/docs/configuration/annotations.md | `number` | `null` | no |
 
 ## Outputs
 
