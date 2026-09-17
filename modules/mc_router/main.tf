@@ -26,9 +26,11 @@ resource "helm_release" "mc_router" {
   values = [jsonencode({
     services = {
       minecraft = {
-        type = "LoadBalancer"
+        type = var.service_type
         port = var.external_port
-        annotations = {
+        # Only meaningful on a LoadBalancer Service; behind a Gateway the
+        # TCPRoute carries the external-dns hostnames instead.
+        annotations = var.service_type != "LoadBalancer" ? {} : {
           # Publish every backing hostname as a DNS record pointing at this
           # single NodeBalancer via external-dns.
           "external-dns.alpha.kubernetes.io/hostname" = join(",", [for m in var.mappings : m.hostname])

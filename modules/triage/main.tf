@@ -1,12 +1,12 @@
 locals {
-  names = [
+  # "ingress" stays last so toggling it never shifts the other indices.
+  names = concat([
     "ns",
     "secret",
     "party-tinkerbell/configmap-tinkerbell",
     "deployment",
     "service",
-    "ingress",
-  ]
+  ], var.create_ingress ? ["ingress"] : [])
 }
 resource "kubectl_manifest" "triage_tinkerbell" {
   count = length(local.names)

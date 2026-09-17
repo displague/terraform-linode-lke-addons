@@ -61,20 +61,57 @@ module "external_dns" {
   depends_on                = [module.lke]
   source                    = "./modules/external_dns"
   external_dns_token_expiry = var.external_dns_token_expiry
+  # Once the Gateway owns the hostnames, stop reading Ingress/Service so the
+  # two sources can't fight over the same records during/after cutover.
+  sources = var.gateway_enabled ? ["gateway-httproute", "gateway-tcproute"] : ["service", "ingress"]
 }
 
 module "cert_manager" {
-  depends_on   = [module.lke]
-  source       = "./modules/cert_manager"
-  issuer_email = var.issuer_email
-  linode_api_token = module.external_dns.linode_api_token
+  # module.gateway installs the Gateway API CRDs; cert-manager's gateway-shim
+  # refuses to start without them, so it must come after.
+  depends_on          = [module.lke, module.gateway]
+  source              = "./modules/cert_manager"
+  issuer_email        = var.issuer_email
+  linode_api_token    = module.external_dns.linode_api_token
+  gateway_api_enabled = var.gateway_enabled
 }
 
 module "ingress_nginx" {
+  count      = var.ingress_nginx_enabled ? 1 : 0
   depends_on = [module.lke, module.cert_manager]
   source     = "./modules/ingress_nginx"
 
+  # The example host moves to the Gateway's whoami app when it's enabled.
+  example_host = var.gateway_enabled ? "" : var.example_host
+}
+
+# Existing installs had this module un-indexed; keep state addresses stable.
+moved {
+  from = module.ingress_nginx
+  to   = module.ingress_nginx[0]
+}
+
+# Single Gateway API entrypoint (one NodeBalancer). See modules/gateway.
+module "gateway" {
+  count        = var.gateway_enabled ? 1 : 0
+  depends_on   = [module.lke]
+  source       = "./modules/gateway"
+  ipv6_ingress = var.gateway_ipv6_ingress
   example_host = var.example_host
+
+  http_routes = concat(
+    var.example_host != "" ? [{ hostname = var.example_host, namespace = "gateway", service = "example", port = 80 }] : [],
+    (var.jhub_hostname != "" && var.jhub_client_id != "" && var.jhub_client_secret != "") ? [{ hostname = var.jhub_hostname, namespace = "jupyterhub", service = "proxy-public", port = 80 }] : [],
+    (var.gh_token != "" && var.triage_host != "") ? [{ hostname = var.triage_host, namespace = "triage-tinkerbell", service = "triage-party", port = 8080 }] : [],
+    var.extra_http_routes,
+  )
+
+  tcp_routes = (var.mc_router_enabled && length(var.minecraft) > 0) ? [{
+    hostnames = [for m in var.minecraft : m.hostname]
+    namespace = "mc-router"
+    service   = "mc-router"
+    port      = 25565
+  }] : []
 }
 
 module "longhorn" {
@@ -97,9 +134,10 @@ module "minecraft" {
 }
 
 module "mc_router" {
-  count                 = var.mc_router_enabled && length(var.minecraft) > 0 ? 1 : 0
-  depends_on            = [module.lke, module.minecraft]
-  source                = "./modules/mc_router"
+  count        = var.mc_router_enabled && length(var.minecraft) > 0 ? 1 : 0
+  depends_on   = [module.lke, module.minecraft]
+  source       = "./modules/mc_router"
+  service_type = var.gateway_enabled ? "ClusterIP" : "LoadBalancer"
   mappings = [
     for m in var.minecraft : {
       hostname = m.hostname
@@ -109,11 +147,12 @@ module "mc_router" {
 }
 
 module "triage" {
-  count       = (var.gh_token != "" && var.triage_host != "") ? 1 : 0
-  depends_on  = [module.lke]
-  source      = "./modules/triage"
-  gh_token    = var.gh_token
-  triage_host = var.triage_host
+  count          = (var.gh_token != "" && var.triage_host != "") ? 1 : 0
+  depends_on     = [module.lke]
+  source         = "./modules/triage"
+  gh_token       = var.gh_token
+  triage_host    = var.triage_host
+  create_ingress = !var.gateway_enabled
 }
 
 module "jhub" {
@@ -125,4 +164,5 @@ module "jhub" {
   client_secret  = var.jhub_client_secret
   gh_admin_users = var.gh_admin_users
   hub_db_volume  = var.jhub_db_volume
+  create_ingress = !var.gateway_enabled
 }
