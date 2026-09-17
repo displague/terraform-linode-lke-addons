@@ -2,6 +2,45 @@ resource "kubernetes_namespace" "jupyterhub" {
   metadata { name = "jupyterhub" }
 }
 
+# Terraform-managed PVC for JupyterHub's sqlite database, in the same spirit
+# as `modules/minecraft`'s `datadir` PVC. The chart's built-in `sqlite-pvc`
+# mode was locking us into an immutable-field trap whenever the upstream
+# `values.schema.json` dropped a field like `volumeName` — helm would try
+# to reconcile the running PVC and k8s would reject the change on
+# `spec.volumeName` (immutable after binding).
+#
+# By flipping the chart to `hub.db.type = "other"` and mounting our own
+# PVC via `hub.extraVolumes` / `hub.extraVolumeMounts` at the same
+# `/srv/jupyterhub` path the chart used, helm no longer manages the PVC —
+# terraform does. Same underlying block volume, same on-disk sqlite file.
+resource "kubernetes_persistent_volume_claim" "hub_db" {
+  metadata {
+    name      = var.hub_db_claim
+    namespace = kubernetes_namespace.jupyterhub.metadata[0].name
+    labels = {
+      "app.kubernetes.io/managed-by" = "terraform"
+      "app.kubernetes.io/name"       = "jupyterhub"
+      "app.kubernetes.io/component"  = "hub-db"
+    }
+  }
+
+  spec {
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = var.hub_db_storage_class
+    resources {
+      requests = {
+        storage = var.hub_db_storage_size
+      }
+    }
+    # When rebinding an existing Retain PV (post-outage recovery or
+    # migrating from the chart-managed PVC), set var.hub_db_volume so the
+    # PVC lands on that specific PV. Leave "" for dynamic provisioning.
+    volume_name = var.hub_db_volume != "" ? var.hub_db_volume : null
+  }
+
+  wait_until_bound = false
+}
+
 # https://artifacthub.io/packages/helm/bitnami/external-dns
 resource "helm_release" "jupyterhub" {
   name              = "jupyterhub"
@@ -11,6 +50,11 @@ resource "helm_release" "jupyterhub" {
   force_update      = true
   dependency_update = true
 
+  # `hub.db.type = "other"` disables the chart's built-in PVC template.
+  # We mount our terraform-managed PVC at the same `/srv/jupyterhub` path
+  # the chart used in `sqlite-pvc` mode, and point `hub.db.url` at the
+  # same sqlite file the chart would have created there. Migration is
+  # therefore transparent to a running hub — same file at the same path.
   values = [
     <<-EOT
     ingress:
@@ -21,6 +65,17 @@ resource "helm_release" "jupyterhub" {
         - hosts:
           - ${var.hostname}
           secretName: ${var.hostname}-crt
+    hub:
+      db:
+        type: other
+        url: sqlite:////srv/jupyterhub/jupyterhub.sqlite
+      extraVolumes:
+        - name: hub-db
+          persistentVolumeClaim:
+            claimName: ${kubernetes_persistent_volume_claim.hub_db.metadata[0].name}
+      extraVolumeMounts:
+        - name: hub-db
+          mountPath: /srv/jupyterhub
   EOT
   ]
 
@@ -29,37 +84,16 @@ resource "helm_release" "jupyterhub" {
     value = var.client_secret
   }]
 
-  #set {
-  #  name = "ingress.tls"
-  #  value = jsonencode([{
-  #    hosts = [var.hostname]
-  #    secretName = "${var.hostname}-crt"
-  #  }])
-  #}
-
-  #set {
-  #  name  = "ingress.enabled"
-  #  value = "true"
-  #}
-
   set = [
     {
       name  = "proxy.service.type"
       value = var.proxy_service_type
     },
     {
-      name  = "hub.db.type"
-      value = "sqlite-pvc"
-    },
-    {
       name  = "ingress.annotations.cert-manager\\.io/cluster-issuer"
       value = "letsencrypt-prod"
     },
 
-    #  set {
-    #    name = "ingress.annotations.kubernetes\\.io/ingress\\.class"
-    #    value = "nginx"
-    #  }
     {
       name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/proxy-body-size"
       value = "1024m"
@@ -115,17 +149,10 @@ resource "helm_release" "jupyterhub" {
       value = "github"
     },
     {
-      name  = "hub.db.pvc.storageClassName"
-      value = "linode-block-storage-retain"
-    },
-    # `hub.db.pvc.volumeName` was removed from the upstream jupyterhub
-    # chart's values.schema.json (rejected on apply). The chart's default
-    # PVC name `hub-db-dir` binds to the existing PV via storage class match
-    # when the PVC already exists, so we no longer need to pin the volume.
-    # `var.hub_db_volume` is retained for backward compatibility but ignored.
-    {
       name  = "hub.config.JupyterHub.admin_access"
       value = false
     }
   ]
+
+  depends_on = [kubernetes_persistent_volume_claim.hub_db]
 }
