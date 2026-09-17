@@ -1,4 +1,5 @@
 variable "ops" {
+  type        = string
   description = <<-EOS
     Comma-separated Minecraft usernames granted op on this server. Names are
     resolved to UUIDs via Mojang/PlayerDB at container start; a stale (renamed
@@ -9,18 +10,22 @@ variable "ops" {
 }
 
 variable "motd" {
+  type        = string
   description = "Message of the Day"
 }
 
 variable "hostname" {
+  type        = string
   description = "DNS Hostname for the server"
 }
 
 variable "namespace" {
+  type    = string
   default = "minecraft"
 }
 
 variable "port" {
+  type    = number
   default = 25565
 }
 

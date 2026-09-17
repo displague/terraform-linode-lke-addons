@@ -1,7 +1,12 @@
 variable "hostname" {
+  type = string
 }
-variable "client_id" {}
-variable "client_secret" {}
+variable "client_id" {
+  type = string
+}
+variable "client_secret" {
+  type = string
+}
 variable "gh_admin_users" {
   type        = list(string)
   description = "GitHub Admin Users"

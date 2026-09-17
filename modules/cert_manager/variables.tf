@@ -1,5 +1,8 @@
-variable "issuer_email" {}
+variable "issuer_email" {
+  type = string
+}
 variable "linode_api_token" {
+  type      = string
   sensitive = true
 }
 

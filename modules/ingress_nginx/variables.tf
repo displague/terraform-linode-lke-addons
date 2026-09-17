@@ -1,1 +1,4 @@
-variable "example_host" { default = "" }
+variable "example_host" {
+  type    = string
+  default = ""
+}
