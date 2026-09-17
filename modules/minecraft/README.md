@@ -86,14 +86,18 @@ minecraft`) — but helm will overwrite that on the next terraform apply.
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
-No requirements.
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.6 |
+| <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 3.0.0 |
+| <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 2.38.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_helm"></a> [helm](#provider\_helm) | n/a |
-| <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | n/a |
+| <a name="provider_helm"></a> [helm](#provider\_helm) | >= 3.0.0 |
+| <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | >= 2.38.0 |
 
 ## Modules
 
@@ -111,9 +115,9 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_hostname"></a> [hostname](#input\_hostname) | DNS Hostname for the server | `any` | n/a | yes |
-| <a name="input_motd"></a> [motd](#input\_motd) | Message of the Day | `any` | n/a | yes |
-| <a name="input_ops"></a> [ops](#input\_ops) | Comma-separated Minecraft usernames granted op on this server. Names are<br>resolved to UUIDs via Mojang/PlayerDB at container start; a stale (renamed<br>or deleted) name will crash-loop the pod on next recreate. See README.md<br>for how to check names and find current names for known UUIDs before<br>running `terraform apply`. | `any` | n/a | yes |
+| <a name="input_hostname"></a> [hostname](#input\_hostname) | DNS Hostname for the server | `string` | n/a | yes |
+| <a name="input_motd"></a> [motd](#input\_motd) | Message of the Day | `string` | n/a | yes |
+| <a name="input_ops"></a> [ops](#input\_ops) | Comma-separated Minecraft usernames granted op on this server. Names are<br>resolved to UUIDs via Mojang/PlayerDB at container start; a stale (renamed<br>or deleted) name will crash-loop the pod on next recreate. See README.md<br>for how to check names and find current names for known UUIDs before<br>running `terraform apply`. | `string` | n/a | yes |
 | <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | itzg/minecraft-server-charts chart version. Pin to what your running deployment expects; 4.x→5.x is a breaking upgrade. | `string` | `"4.26.4"` | no |
 | <a name="input_claim"></a> [claim](#input\_claim) | Name of the PVC the module owns and passes to the chart via `existingClaim`.<br>The module creates this PVC as a first-class terraform resource so a chart<br>reinstall or version bump doesn't leave the previous PV `Released` and mint<br>a new one. Default name preserves the historical PVC naming. | `string` | `"minecraft-minecraft-datadir"` | no |
 | <a name="input_mc_version"></a> [mc\_version](#input\_mc\_version) | Minecraft server version passed to the itzg image (`minecraftServer.version`).<br>Defaults to `LATEST`, which is what most users want. Pin to a specific version<br>(e.g. `"1.21.8"`) when restoring a world from an older DataVersion — the itzg<br>image runs the world's built-in upgrade on start, and skipping several majors<br>at once has been observed to nuke the world during the upgrade cleanup step. | `string` | `"LATEST"` | no |
