@@ -30,7 +30,7 @@ terraform apply
 | <a name="requirement_http"></a> [http](#requirement\_http) | >= 3.4.0 |
 | <a name="requirement_kubectl"></a> [kubectl](#requirement\_kubectl) | >= 1.19.0 |
 | <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 2.38.0 |
-| <a name="requirement_linode"></a> [linode](#requirement\_linode) | >= 3.1.0 |
+| <a name="requirement_linode"></a> [linode](#requirement\_linode) | ~> 3.1 |
 | <a name="requirement_local"></a> [local](#requirement\_local) | >= 2.5.0 |
 
 ## Providers
