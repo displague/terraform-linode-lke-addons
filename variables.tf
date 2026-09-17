@@ -144,7 +144,7 @@ variable "lke_acl_ipv6" {
 
 variable "gateway_enabled" {
   type        = bool
-  default     = false
+  default     = true
   description = <<-EOS
     Front the cluster with a single Gateway API Gateway (modules/gateway,
     Envoy Gateway) instead of ingress-nginx + a separate mc-router
@@ -152,8 +152,8 @@ variable "gateway_enabled" {
     example hosts and `extra_http_routes`, a TCPRoute fronts mc-router
     (which drops to ClusterIP), cert-manager's gateway-shim is enabled, and
     external-dns switches to the gateway-httproute / gateway-tcproute
-    sources. Pair with `ingress_nginx_enabled = false` once DNS has moved to
-    finish on exactly one NodeBalancer.
+    sources. This is the cluster's only entrypoint; set false only if you
+    bring your own ingress.
   EOS
 }
 
@@ -175,8 +175,3 @@ variable "extra_http_routes" {
   description = "Additional HTTP(S) hosts to route through the Gateway to an existing in-cluster Service (`namespace/service:port`). Each gets its own HTTPS listener + certificate."
 }
 
-variable "ingress_nginx_enabled" {
-  type        = bool
-  default     = true
-  description = "Deploy ingress-nginx (+ hairpin-proxy). ingress-nginx is unmaintained since March 2026; set false after `gateway_enabled = true` has taken over DNS. Uninstall reaps its NodeBalancer (`preserve=false`)."
-}

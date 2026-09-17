@@ -55,10 +55,9 @@ variable "proxy_service_type" {
   description = <<-EOS
     Kubernetes Service type for JupyterHub's `proxy-public`. The bundled
     chart defaults to `LoadBalancer`, which on Linode spins a dedicated
-    NodeBalancer even though the module already wires up an
-    ingress-nginx-backed Ingress on `var.hostname`. Setting this to
-    `ClusterIP` drops the redundant NodeBalancer; traffic still reaches
-    users via the shared ingress-nginx entrypoint.
+    NodeBalancer even though the hub is reached through the cluster's
+    shared Gateway (an HTTPRoute on `var.hostname`). `ClusterIP` (the
+    default here) avoids that extra NodeBalancer.
   EOS
   default     = "ClusterIP"
 
@@ -71,5 +70,5 @@ variable "proxy_service_type" {
 variable "create_ingress" {
   type        = bool
   default     = true
-  description = "Render the chart's nginx Ingress for `hostname`. Set false when the host is routed by modules/gateway (an HTTPRoute) instead."
+  description = "Render the chart's own Ingress for `hostname`. Leave false (the default via the root module) when the host is routed by modules/gateway (an HTTPRoute); only useful with a bring-your-own ingress controller."
 }
