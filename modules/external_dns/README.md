@@ -2,7 +2,7 @@
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.6 |
 | <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 3.0.0 |
 | <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 2.38.0 |
@@ -11,7 +11,7 @@
 ## Providers
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="provider_helm"></a> [helm](#provider\_helm) | 2.3.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | 2.4.1 |
 | <a name="provider_linode"></a> [linode](#provider\_linode) | 1.20.2 |
@@ -23,7 +23,7 @@ No modules.
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 | [helm_release.external_dns](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 | [kubernetes_namespace.external_dns](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/namespace) | resource |
 | [kubernetes_secret.external_dns](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret) | resource |
@@ -32,13 +32,13 @@ No modules.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_external_dns_token_expiry"></a> [external\_dns\_token\_expiry](#input\_external\_dns\_token\_expiry) | Expiry date for the Linode API token used by external-dns. RFC3339 format. | `string` | n/a | yes |
-| <a name="input_sources"></a> [sources](#input\_sources) | external-dns `--source` list. Use ["gateway-httproute", "gateway-tcproute"] once traffic is fronted by a Gateway API Gateway; the chart's ClusterRole already covers gateway.networking.k8s.io. | `list(string)` | <pre>[<br/>  "service",<br/>  "ingress"<br/>]</pre> | no |
+| <a name="input_sources"></a> [sources](#input\_sources) | external-dns `--source` list. Use ["gateway-httproute", "gateway-tcproute"] once traffic is fronted by a Gateway API Gateway; the chart's ClusterRole already covers gateway.networking.k8s.io. | `list(string)` | <pre>[<br>  "service",<br>  "ingress"<br>]</pre> | no |
 
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_linode_api_token"></a> [linode\_api\_token](#output\_linode\_api\_token) | n/a |
 <!-- END_TF_DOCS -->
