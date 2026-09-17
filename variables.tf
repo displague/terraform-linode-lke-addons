@@ -44,21 +44,6 @@ variable "mc_router_enabled" {
   default     = false
 }
 
-variable "mc_router_share_nodebalancer_id" {
-  type        = number
-  default     = null
-  description = <<-EOS
-    Optional existing Linode NodeBalancer id to piggyback mc-router onto —
-    typically the id of the NB fronting ingress-nginx. When set, ccm-linode
-    adds a port config for 25565 to that NB instead of provisioning a
-    dedicated one for mc-router. Ports across the consumer Services must
-    not collide (25565 alongside 80/443 is fine).
-
-    Only meaningful when `mc_router_enabled = true`. Get the id from
-    `kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.metadata.annotations.service\.beta\.kubernetes\.io/linode-loadbalancer-nodebalancer-id}'`
-    once ingress-nginx is up.
-  EOS
-}
 
 variable "minecraft" {
   type = list(object(
