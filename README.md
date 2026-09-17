@@ -30,7 +30,7 @@ terraform apply
 | <a name="requirement_http"></a> [http](#requirement\_http) | >= 3.4.0 |
 | <a name="requirement_kubectl"></a> [kubectl](#requirement\_kubectl) | >= 1.19.0 |
 | <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 2.38.0 |
-| <a name="requirement_linode"></a> [linode](#requirement\_linode) | ~> 3.1 |
+| <a name="requirement_linode"></a> [linode](#requirement\_linode) | ~> 4.0 |
 | <a name="requirement_local"></a> [local](#requirement\_local) | >= 2.5.0 |
 
 ## Providers
@@ -82,6 +82,7 @@ terraform apply
 | <a name="input_lke_acl_ipv6"></a> [lke\_acl\_ipv6](#input\_lke\_acl\_ipv6) | IPv6 CIDRs to allow through the LKE control-plane ACL. Ignored if `lke_acl_enabled = false`. | `list(string)` | `[]` | no |
 | <a name="input_longhorn_enabled"></a> [longhorn\_enabled](#input\_longhorn\_enabled) | Whether Longhorn should be installed | `bool` | `false` | no |
 | <a name="input_mc_router_enabled"></a> [mc\_router\_enabled](#input\_mc\_router\_enabled) | When true, deploy `modules/mc_router` (a single LoadBalancer that routes<br>all minecraft traffic by handshake hostname) and force every entry in<br>`var.minecraft` to `service_type = ClusterIP`. Consolidates N per-server<br>NodeBalancers down to one. Requires clients to keep dialing the same<br>per-server hostnames. | `bool` | `false` | no |
+| <a name="input_mc_router_share_nodebalancer_id"></a> [mc\_router\_share\_nodebalancer\_id](#input\_mc\_router\_share\_nodebalancer\_id) | Optional existing Linode NodeBalancer id to piggyback mc-router onto —<br>typically the id of the NB fronting ingress-nginx. When set, ccm-linode<br>adds a port config for 25565 to that NB instead of provisioning a<br>dedicated one for mc-router. Ports across the consumer Services must<br>not collide (25565 alongside 80/443 is fine).<br><br>Only meaningful when `mc_router_enabled = true`. Get the id from<br>`kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.metadata.annotations.service\.beta\.kubernetes\.io/linode-loadbalancer-nodebalancer-id}'`<br>once ingress-nginx is up. | `number` | `null` | no |
 | <a name="input_triage_host"></a> [triage\_host](#input\_triage\_host) | hostname where triage party will reside | `string` | `""` | no |
 
 ## Outputs
