@@ -100,7 +100,6 @@ module "mc_router" {
   count                 = var.mc_router_enabled && length(var.minecraft) > 0 ? 1 : 0
   depends_on            = [module.lke, module.minecraft]
   source                = "./modules/mc_router"
-  share_nodebalancer_id = var.mc_router_share_nodebalancer_id
   mappings = [
     for m in var.minecraft : {
       hostname = m.hostname

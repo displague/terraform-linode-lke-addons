@@ -3,25 +3,17 @@
 # (Minecraft's handshake carries the server address the client used).
 #
 # Consolidates N per-server LoadBalancers (each = one Linode NodeBalancer =
-# ~$10/mo) down to a single one — and with `share_nodebalancer_id`, can
-# further piggyback onto an *existing* NodeBalancer (e.g. ingress-nginx's)
-# so the cluster ends up with a single Linode NodeBalancer total.
-
-locals {
-  # `preserve` says "don't delete the underlying NB if the Service is
-  # deleted". Two cases:
-  #  - We own our NB (share_nodebalancer_id == null): the NB is disposable
-  #    (external-dns keeps DNS in sync, no cert is bound to the IP).
-  #    Explicit `false` to defend against a future default flip.
-  #  - We share someone else's NB: MUST NOT delete it on Service delete,
-  #    since it belongs to the other Service (ingress-nginx typically) and
-  #    that Service didn't ask for its NB to be reaped.
-  preserve_value = var.share_nodebalancer_id == null ? "false" : "true"
-
-  share_annotations = var.share_nodebalancer_id == null ? {} : {
-    "service.beta.kubernetes.io/linode-loadbalancer-nodebalancer-id" = tostring(var.share_nodebalancer_id)
-  }
-}
+# ~$10/mo) down to a single one.
+#
+# NOTE: this module deliberately does NOT try to share an existing
+# NodeBalancer (e.g. ingress-nginx's) via ccm-linode's `nodebalancer-id`
+# annotation. That annotation is single-Service *adopt*, not multi-Service
+# share: each LoadBalancer Service's reconciler rewrites the NB's entire
+# port-config list to match only its own ports, so two Services on one NB
+# stomp each other (ingress lost 80/443 when this was tried). One
+# LoadBalancer Service == one NodeBalancer. To get to a single NB, expose
+# 25565 on the ingress-nginx Service instead (its `tcp-services`
+# ConfigMap) and run mc-router as ClusterIP — see the module README.
 
 resource "helm_release" "mc_router" {
   name             = "mc-router"
@@ -36,17 +28,16 @@ resource "helm_release" "mc_router" {
       minecraft = {
         type = "LoadBalancer"
         port = var.external_port
-        # Publish every backing hostname as a DNS record pointing at this
-        # single NodeBalancer via external-dns. Merged with the optional
-        # NB-share annotations so both drive the same Service.
-        annotations = merge(
-          {
-            "external-dns.alpha.kubernetes.io/hostname"              = join(",", [for m in var.mappings : m.hostname])
-            "external-dns.alpha.kubernetes.io/ttl"                   = "180"
-            "service.beta.kubernetes.io/linode-loadbalancer-preserve" = local.preserve_value
-          },
-          local.share_annotations,
-        )
+        annotations = {
+          # Publish every backing hostname as a DNS record pointing at this
+          # single NodeBalancer via external-dns.
+          "external-dns.alpha.kubernetes.io/hostname" = join(",", [for m in var.mappings : m.hostname])
+          "external-dns.alpha.kubernetes.io/ttl"      = "180"
+          # This NB is disposable — external-dns keeps DNS in sync and no
+          # cert is bound to the IP. Explicit `false` (ccm-linode's default)
+          # so a future default flip can't leave a stale $10/mo NB behind.
+          "service.beta.kubernetes.io/linode-loadbalancer-preserve" = "false"
+        }
       }
     }
     minecraftRouter = {

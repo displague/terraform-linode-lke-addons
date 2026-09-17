@@ -36,6 +36,24 @@ Assumes you're moving from three per-server LoadBalancers on `mc1.example.com`,
 
 Once the dust settles: 5 NBs → 2 (`ingress-nginx` + `mc-router`).
 
+### Why not share ingress-nginx's NodeBalancer? (don't)
+
+It's tempting to point mc-router at ingress-nginx's existing NodeBalancer
+with ccm-linode's `service.beta.kubernetes.io/linode-loadbalancer-nodebalancer-id`
+annotation and land on a single NB. **This does not work.** That annotation
+is single-Service *adopt*, not multi-Service share: every LoadBalancer
+Service's reconciler rewrites the NB's whole port-config list to match only
+its own ports. With ingress-nginx (80/443) and mc-router (25565) on one NB,
+whichever reconciled last wins and the other Service's ports vanish — we
+lost ingress 80/443 this way. One LoadBalancer Service == one NodeBalancer.
+
+The correct path to a single NB is to make mc-router a `ClusterIP` Service
+and expose 25565 on the **ingress-nginx** Service via its `tcp-services`
+ConfigMap (`--tcp-services-configmap`), forwarding to
+`mc-router/mc-router:25565`. Then there is exactly one LoadBalancer Service
+and ccm-linode owns exactly one NB. That's tracked as a follow-up; this
+module keeps a dedicated NB for now.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
@@ -65,7 +83,6 @@ No modules.
 | <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | itzg/mc-router chart version. Pinned so upstream changes don't silently roll out. | `string` | `"1.5.0"` | no |
 | <a name="input_external_port"></a> [external\_port](#input\_external\_port) | External Minecraft port exposed by the mc-router LoadBalancer Service. | `number` | `25565` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Kubernetes namespace to install mc-router into. | `string` | `"mc-router"` | no |
-| <a name="input_share_nodebalancer_id"></a> [share\_nodebalancer\_id](#input\_share\_nodebalancer\_id) | Optional existing Linode NodeBalancer id to piggyback onto (typically<br>the id of the NB fronting ingress-nginx). ccm-linode adds a port<br>config for `external_port` to that NB instead of provisioning a<br>dedicated one for mc-router. Ports across the consuming Services must<br>not collide — mc-router on 25565 slots alongside ingress-nginx on<br>80/443 without conflict.<br><br>Also sets the `preserve` annotation so `helm uninstall mc-router`<br>doesn't delete the shared NB (it belongs to the other Service).<br><br>Uses ccm-linode's<br>`service.beta.kubernetes.io/linode-loadbalancer-nodebalancer-id`<br>annotation — see<br>https://github.com/linode/linode-cloud-controller-manager/blob/main/docs/configuration/annotations.md | `number` | `null` | no |
 
 ## Outputs
 
