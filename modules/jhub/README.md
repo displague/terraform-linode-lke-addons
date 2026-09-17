@@ -61,7 +61,7 @@ terraform apply
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.6 |
 | <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 3.0.0 |
 | <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 2.38.0 |
@@ -69,7 +69,7 @@ terraform apply
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | >= 3.0.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | >= 2.38.0 |
 
@@ -80,7 +80,7 @@ No modules.
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [helm_release.jupyterhub](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 | [kubernetes_namespace.jupyterhub](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/namespace) | resource |
 | [kubernetes_persistent_volume_claim.hub_db](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/persistent_volume_claim) | resource |
@@ -88,17 +88,17 @@ No modules.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_client_id"></a> [client\_id](#input\_client\_id) | n/a | `string` | n/a | yes |
 | <a name="input_client_secret"></a> [client\_secret](#input\_client\_secret) | n/a | `string` | n/a | yes |
 | <a name="input_gh_admin_users"></a> [gh\_admin\_users](#input\_gh\_admin\_users) | GitHub Admin Users | `list(string)` | n/a | yes |
 | <a name="input_hostname"></a> [hostname](#input\_hostname) | n/a | `string` | n/a | yes |
 | <a name="input_create_ingress"></a> [create\_ingress](#input\_create\_ingress) | Render the chart's own Ingress for `hostname`. Leave false (the default via the root module) when the host is routed by modules/gateway (an HTTPRoute); only useful with a bring-your-own ingress controller. | `bool` | `true` | no |
-| <a name="input_hub_db_claim"></a> [hub\_db\_claim](#input\_hub\_db\_claim) | Name of the terraform-managed PVC that stores the hub sqlite database.<br>Default matches the historical chart-generated name for zero-downtime<br>migration from `hub.db.type = sqlite-pvc`. | `string` | `"hub-db-dir"` | no |
+| <a name="input_hub_db_claim"></a> [hub\_db\_claim](#input\_hub\_db\_claim) | Name of the terraform-managed PVC that stores the hub sqlite database.<br/>Default matches the historical chart-generated name for zero-downtime<br/>migration from `hub.db.type = sqlite-pvc`. | `string` | `"hub-db-dir"` | no |
 | <a name="input_hub_db_storage_class"></a> [hub\_db\_storage\_class](#input\_hub\_db\_storage\_class) | Storage class for the hub sqlite PVC. `Retain` reclaim is what makes recovery possible when things go sideways. | `string` | `"linode-block-storage-retain"` | no |
-| <a name="input_hub_db_storage_size"></a> [hub\_db\_storage\_size](#input\_hub\_db\_storage\_size) | Requested size of the hub sqlite PVC. 1Gi matches the upstream chart's<br>historical default. Note that on Linode Block Storage the underlying<br>PV is provisioned at the storage class minimum (10Gi) regardless of<br>the request, so keeping this small doesn't cost anything. | `string` | `"1Gi"` | no |
-| <a name="input_hub_db_volume"></a> [hub\_db\_volume](#input\_hub\_db\_volume) | Optional pre-existing PersistentVolume name to bind the hub sqlite PVC<br>to. Set this when adopting the module for an existing chart-managed<br>PVC (`Retain` policy preserves the PV across the migration). Leave ""<br>to let the storage class dynamically provision a fresh PV. | `string` | `""` | no |
-| <a name="input_proxy_service_type"></a> [proxy\_service\_type](#input\_proxy\_service\_type) | Kubernetes Service type for JupyterHub's `proxy-public`. The bundled<br>chart defaults to `LoadBalancer`, which on Linode spins a dedicated<br>NodeBalancer even though the hub is reached through the cluster's<br>shared Gateway (an HTTPRoute on `var.hostname`). `ClusterIP` (the<br>default here) avoids that extra NodeBalancer. | `string` | `"ClusterIP"` | no |
+| <a name="input_hub_db_storage_size"></a> [hub\_db\_storage\_size](#input\_hub\_db\_storage\_size) | Requested size of the hub sqlite PVC. 1Gi matches the upstream chart's<br/>historical default. Note that on Linode Block Storage the underlying<br/>PV is provisioned at the storage class minimum (10Gi) regardless of<br/>the request, so keeping this small doesn't cost anything. | `string` | `"1Gi"` | no |
+| <a name="input_hub_db_volume"></a> [hub\_db\_volume](#input\_hub\_db\_volume) | Optional pre-existing PersistentVolume name to bind the hub sqlite PVC<br/>to. Set this when adopting the module for an existing chart-managed<br/>PVC (`Retain` policy preserves the PV across the migration). Leave ""<br/>to let the storage class dynamically provision a fresh PV. | `string` | `""` | no |
+| <a name="input_proxy_service_type"></a> [proxy\_service\_type](#input\_proxy\_service\_type) | Kubernetes Service type for JupyterHub's `proxy-public`. The bundled<br/>chart defaults to `LoadBalancer`, which on Linode spins a dedicated<br/>NodeBalancer even though the hub is reached through the cluster's<br/>shared Gateway (an HTTPRoute on `var.hostname`). `ClusterIP` (the<br/>default here) avoids that extra NodeBalancer. | `string` | `"ClusterIP"` | no |
 
 ## Outputs
 

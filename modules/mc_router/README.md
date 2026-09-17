@@ -56,14 +56,14 @@ alongside the HTTP(S) listeners. One LoadBalancer Service, one NB.
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.6 |
 | <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 3.0.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | >= 3.0.0 |
 
 ## Modules
@@ -73,14 +73,14 @@ No modules.
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [helm_release.mc_router](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_mappings"></a> [mappings](#input\_mappings) | Mapping list turned into `minecraftRouter.mappings` on the itzg/mc-router<br>chart. Each entry routes an inbound Minecraft handshake for the given<br>hostname to the matching in-cluster Service. | <pre>list(object({<br>    hostname = string # external hostname minecraft clients dial (e.g. "mc1.example.com")<br>    target   = string # k8s Service address:port (e.g. "minecraft.minecraft.svc.cluster.local:25565")<br>  }))</pre> | n/a | yes |
+| ---- | ----------- | ---- | ------- | :------: |
+| <a name="input_mappings"></a> [mappings](#input\_mappings) | Mapping list turned into `minecraftRouter.mappings` on the itzg/mc-router<br/>chart. Each entry routes an inbound Minecraft handshake for the given<br/>hostname to the matching in-cluster Service. | <pre>list(object({<br/>    hostname = string # external hostname minecraft clients dial (e.g. "mc1.example.com")<br/>    target   = string # k8s Service address:port (e.g. "minecraft.minecraft.svc.cluster.local:25565")<br/>  }))</pre> | n/a | yes |
 | <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | itzg/mc-router chart version. Pinned so upstream changes don't silently roll out. | `string` | `"1.5.0"` | no |
 | <a name="input_external_port"></a> [external\_port](#input\_external\_port) | External Minecraft port exposed by the mc-router LoadBalancer Service. | `number` | `25565` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Kubernetes namespace to install mc-router into. | `string` | `"mc-router"` | no |

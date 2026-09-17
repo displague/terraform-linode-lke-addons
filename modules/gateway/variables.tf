@@ -75,3 +75,27 @@ variable "example_host" {
   default     = ""
   description = "If set, deploy a tiny `whoami` app in the module namespace and expose it at this hostname. Handy smoke test: it echoes the request headers it received."
 }
+
+variable "external_traffic_policy" {
+  type        = string
+  default     = "Cluster"
+  description = <<-EOS
+    `externalTrafficPolicy` on the Envoy data-plane Service. Envoy Gateway's
+    own default is `Local`, which makes a node's NodePort answer only when an
+    Envoy pod runs on that node — so the NodeBalancer marks every other node
+    down and a single-replica gateway is one node-recycle away from an outage.
+    `Local` preserves the client source IP, but behind a Linode NodeBalancer
+    the source is the NB anyway, so it buys nothing here. `Cluster` lets every
+    node forward to Envoy via kube-proxy: all NB backends healthy.
+  EOS
+  validation {
+    condition     = contains(["Cluster", "Local"], var.external_traffic_policy)
+    error_message = "external_traffic_policy must be Cluster or Local."
+  }
+}
+
+variable "replicas" {
+  type        = number
+  default     = 2
+  description = "Envoy data-plane replicas. 2 so a single node recycle (LKE upgrades cycle nodes) never leaves the cluster without an entrypoint; a preferred anti-affinity spreads them across nodes when the pool has more than one."
+}
