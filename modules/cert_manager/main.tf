@@ -6,13 +6,18 @@ resource "helm_release" "cert_manager" {
   namespace        = "cert-manager"
   create_namespace = true
 
-  set = [{
+  set = concat([{
     name  = "installCRDs"
     value = true
     }, {
     name  = "extraArgs[0]"
     value = "--feature-gates=ACMEHTTP01IngressPathTypeExact=false"
-  }]
+    }],
+    var.gateway_api_enabled ? [{
+      name  = "config.gatewayAPI.enabled"
+      value = "true"
+    }] : [],
+  )
 }
 
 resource "kubernetes_secret" "linode_credentials" {

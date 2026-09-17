@@ -28,3 +28,13 @@ variable "external_port" {
   default     = 25565
 }
 
+
+variable "service_type" {
+  type        = string
+  default     = "LoadBalancer"
+  description = "Service type for mc-router. `LoadBalancer` = its own NodeBalancer (external-dns hostnames published from the Service). `ClusterIP` = sit behind a Gateway API TCPRoute (modules/gateway), which then owns the hostnames."
+  validation {
+    condition     = contains(["LoadBalancer", "ClusterIP"], var.service_type)
+    error_message = "service_type must be LoadBalancer or ClusterIP."
+  }
+}

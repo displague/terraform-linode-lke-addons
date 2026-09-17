@@ -62,3 +62,9 @@ variable "proxy_service_type" {
     error_message = "proxy_service_type must be one of LoadBalancer, ClusterIP, NodePort."
   }
 }
+
+variable "create_ingress" {
+  type        = bool
+  default     = true
+  description = "Render the chart's nginx Ingress for `hostname`. Set false when the host is routed by modules/gateway (an HTTPRoute) instead."
+}

@@ -69,7 +69,7 @@ resource "helm_release" "jupyterhub" {
   values = [
     <<-EOT
     ingress:
-      enabled: true
+      enabled: ${var.create_ingress}
       hosts:
       - ${var.hostname}
       tls:

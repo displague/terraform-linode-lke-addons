@@ -45,4 +45,9 @@ resource "helm_release" "external_dns" {
       value = "bitnamilegacy/external-dns"
     }
   ]
+
+  set_list = [{
+    name  = "sources"
+    value = var.sources
+  }]
 }
