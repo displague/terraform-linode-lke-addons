@@ -29,6 +29,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_external_dns_token_expiry"></a> [external\_dns\_token\_expiry](#input\_external\_dns\_token\_expiry) | Expiry date for the Linode API token used by external-dns. RFC3339 format. | `string` | n/a | yes |
+| <a name="input_sources"></a> [sources](#input\_sources) | external-dns `--source` list. Use ["gateway-httproute", "gateway-tcproute"] once traffic is fronted by a Gateway API Gateway; the chart's ClusterRole already covers gateway.networking.k8s.io. | `list(string)` | <pre>[<br>  "service",<br>  "ingress"<br>]</pre> | no |
 
 ## Outputs
 

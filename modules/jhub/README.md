@@ -89,6 +89,7 @@ No modules.
 | <a name="input_client_secret"></a> [client\_secret](#input\_client\_secret) | n/a | `any` | n/a | yes |
 | <a name="input_gh_admin_users"></a> [gh\_admin\_users](#input\_gh\_admin\_users) | GitHub Admin Users | `list(string)` | n/a | yes |
 | <a name="input_hostname"></a> [hostname](#input\_hostname) | n/a | `any` | n/a | yes |
+| <a name="input_create_ingress"></a> [create\_ingress](#input\_create\_ingress) | Render the chart's nginx Ingress for `hostname`. Set false when the host is routed by modules/gateway (an HTTPRoute) instead. | `bool` | `true` | no |
 | <a name="input_hub_db_claim"></a> [hub\_db\_claim](#input\_hub\_db\_claim) | Name of the terraform-managed PVC that stores the hub sqlite database.<br>Default matches the historical chart-generated name for zero-downtime<br>migration from `hub.db.type = sqlite-pvc`. | `string` | `"hub-db-dir"` | no |
 | <a name="input_hub_db_storage_class"></a> [hub\_db\_storage\_class](#input\_hub\_db\_storage\_class) | Storage class for the hub sqlite PVC. `Retain` reclaim is what makes recovery possible when things go sideways. | `string` | `"linode-block-storage-retain"` | no |
 | <a name="input_hub_db_storage_size"></a> [hub\_db\_storage\_size](#input\_hub\_db\_storage\_size) | Requested size of the hub sqlite PVC. 1Gi matches the upstream chart's<br>historical default. Note that on Linode Block Storage the underlying<br>PV is provisioned at the storage class minimum (10Gi) regardless of<br>the request, so keeping this small doesn't cost anything. | `string` | `"1Gi"` | no |

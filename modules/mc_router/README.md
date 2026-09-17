@@ -83,6 +83,7 @@ No modules.
 | <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | itzg/mc-router chart version. Pinned so upstream changes don't silently roll out. | `string` | `"1.5.0"` | no |
 | <a name="input_external_port"></a> [external\_port](#input\_external\_port) | External Minecraft port exposed by the mc-router LoadBalancer Service. | `number` | `25565` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Kubernetes namespace to install mc-router into. | `string` | `"mc-router"` | no |
+| <a name="input_service_type"></a> [service\_type](#input\_service\_type) | Service type for mc-router. `LoadBalancer` = its own NodeBalancer (external-dns hostnames published from the Service). `ClusterIP` = sit behind a Gateway API TCPRoute (modules/gateway), which then owns the hostnames. | `string` | `"LoadBalancer"` | no |
 
 ## Outputs
 
