@@ -1,6 +1,11 @@
 name: generate-terraform-docs
-# This workflow will generate terraform docs into README.md in the root, examples, and modules folders.
-# Source: https://github.com/equinix-labs/terraform-equinix-kubernetes-addons/blob/main/.github/workflows/documentation.yaml
+# Keeps the terraform-docs tables in README.md (root + modules) current.
+#
+# One pinned terraform-docs version is used by the PR check, the regen job
+# and (by convention) local runs — flags live in .terraform-docs.yml so
+# `terraform-docs .` produces byte-identical output everywhere. Formatting
+# differs between terraform-docs versions (e.g. table separators), so don't
+# mix versions.
 
 on:
   pull_request:
@@ -8,6 +13,7 @@ on:
       - '**/*.tpl'
       - '**/*.tf'
       - '**/README.md'
+      - '.terraform-docs.yml'
       - '.github/workflows/documentation.yaml'
   push:
     branches:
@@ -15,55 +21,55 @@ on:
     paths:
       - '**/*.tpl'
       - '**/*.tf'
+      - '.terraform-docs.yml'
+
+env:
+  TERRAFORM_DOCS_VERSION: v0.24.0
 
 jobs:
-  # Pull requests: fail if the README tables are stale for the .tf changes
-  # in the PR. Regenerate locally with:
-  #   terraform-docs markdown table --output-file README.md --output-mode inject --recursive --recursive-path modules .
-  # (or `terraform-docs --recursive .` with the same flags this job passes).
+  # Pull requests: fail if the README tables are stale for the changes in
+  # the PR. Regenerate locally with `terraform-docs .` (same pinned version).
   check:
     name: TF docs up to date
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: terraform-docs/gh-actions@v1.0.0
-        with:
-          find-dir: .
-          args: --sort-by required
-          indention: 2
-          git-push: "false"
-          fail-on-diff: "true"
+      - name: Install terraform-docs
+        run: |
+          curl -sSL "https://github.com/terraform-docs/terraform-docs/releases/download/${TERRAFORM_DOCS_VERSION}/terraform-docs-${TERRAFORM_DOCS_VERSION}-linux-amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin terraform-docs
+          terraform-docs --version
+      - name: Render docs
+        run: terraform-docs .
+      - name: Fail on diff
+        run: |
+          if ! git diff --quiet -- '*.md'; then
+            echo "::error::README tables are stale. Run 'terraform-docs .' (terraform-docs ${TERRAFORM_DOCS_VERSION}) and commit."
+            git --no-pager diff -- '*.md'
+            exit 1
+          fi
 
   # Pushes to main: regenerate and open/update ONE PR on the stable
-  # bot/generate-terraform-docs branch (see #32).
+  # bot/generate-terraform-docs branch.
   tf-docs:
     name: TF docs
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
-        id: actions-checkout
+      - uses: actions/checkout@v4
         with:
           ref: main
-
-      - name: Render terraform docs inside the main and the modules README.md files and push changes back to PR branch
-        id: terraform-docs
-        uses: terraform-docs/gh-actions@v1.0.0
-        with:
-          find-dir: .
-          args: --sort-by required
-          indention: 2
-          git-push: "false"
-
-      # terraform-docs/gh-actions@v1.0.0 modifies .git files with owner root:root, and the following steps fail with
-      # insufficient permission for adding an object to repository database .git/objects
-      # since the expected user is runner:docker. See https://github.com/terraform-docs/gh-actions/issues/90
-      - name: Fix .git owner
-        run: sudo chown runner:docker -R .git
-
-      - name: Create Pull Request
-        if: steps.terraform-docs.outputs.num_changed != '0'
+      - name: Install terraform-docs
+        run: |
+          curl -sSL "https://github.com/terraform-docs/terraform-docs/releases/download/${TERRAFORM_DOCS_VERSION}/terraform-docs-${TERRAFORM_DOCS_VERSION}-linux-amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin terraform-docs
+      - name: Render docs
+        run: terraform-docs .
+      - name: Create or update pull request
         uses: peter-evans/create-pull-request@v7
         with:
           commit-message: 'generate-terraform-docs: automated action'
@@ -72,12 +78,10 @@ jobs:
           title: 'generate-terraform-docs: automated action'
           body: |
             Update terraform docs
-          # Stable branch name — the action UPSERTs a PR onto this branch,
-          # so back-to-back doc-regen runs update the existing open PR
-          # instead of cascading new ones that conflict with each other.
+          # Stable branch name — the action UPSERTs a PR onto this branch, so
+          # back-to-back doc-regen runs update the existing open PR instead of
+          # cascading new ones that conflict with each other.
           branch: bot/generate-terraform-docs
           base: main
           signoff: true
           delete-branch: true
-
-      # TODO(ocobleseqx): https://github.com/peter-evans/enable-pull-request-automerge

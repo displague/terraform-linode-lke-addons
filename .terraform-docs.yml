@@ -1,0 +1,17 @@
+# terraform-docs configuration — https://terraform-docs.io/user-guide/configuration/
+# Regenerate every README (root + modules) with:  terraform-docs .
+# CI pins the terraform-docs version in .github/workflows/documentation.yaml;
+# use the same version locally so the output is byte-identical.
+formatter: "markdown table"
+
+recursive:
+  enabled: true
+  path: modules
+
+output:
+  file: README.md
+  mode: inject
+
+sort:
+  enabled: true
+  by: required
