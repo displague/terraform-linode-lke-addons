@@ -118,10 +118,11 @@ resource "helm_release" "jupyterhub" {
       name  = "hub.db.pvc.storageClassName"
       value = "linode-block-storage-retain"
     },
-    {
-      name  = "hub.db.pvc.volumeName"
-      value = var.hub_db_volume
-    },
+    # `hub.db.pvc.volumeName` was removed from the upstream jupyterhub
+    # chart's values.schema.json (rejected on apply). The chart's default
+    # PVC name `hub-db-dir` binds to the existing PV via storage class match
+    # when the PVC already exists, so we no longer need to pin the volume.
+    # `var.hub_db_volume` is retained for backward compatibility but ignored.
     {
       name  = "hub.config.JupyterHub.admin_access"
       value = false
