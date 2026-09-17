@@ -22,6 +22,17 @@ resource "kubernetes_persistent_volume_claim" "hub_db" {
       "app.kubernetes.io/name"       = "jupyterhub"
       "app.kubernetes.io/component"  = "hub-db"
     }
+    # `helm.sh/resource-policy: keep` on the PVC survives the migration
+    # window during which helm has just dropped this PVC from its release
+    # manifest (because chart's `hub.db.type` flipped from `sqlite-pvc` to
+    # `other`) but hasn't yet reconciled to the new state — without this
+    # annotation, helm actively DELETES the k8s object on that upgrade,
+    # even though it's labeled `managed-by=terraform`. This annotation
+    # tells helm to skip the delete during `helm upgrade`, so terraform
+    # keeps ownership continuity.
+    annotations = {
+      "helm.sh/resource-policy" = "keep"
+    }
   }
 
   spec {

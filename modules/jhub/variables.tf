@@ -30,8 +30,13 @@ variable "hub_db_claim" {
 
 variable "hub_db_storage_size" {
   type        = string
-  default     = "10Gi"
-  description = "Size of the hub sqlite PVC. 10Gi is the historical chart default via linode-block-storage."
+  default     = "1Gi"
+  description = <<-EOS
+    Requested size of the hub sqlite PVC. 1Gi matches the upstream chart's
+    historical default. Note that on Linode Block Storage the underlying
+    PV is provisioned at the storage class minimum (10Gi) regardless of
+    the request, so keeping this small doesn't cost anything.
+  EOS
 }
 
 variable "hub_db_storage_class" {
