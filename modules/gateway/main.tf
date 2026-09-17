@@ -78,8 +78,29 @@ resource "kubectl_manifest" "envoyproxy" {
         type = "Kubernetes"
         kubernetes = {
           envoyService = {
-            type        = "LoadBalancer"
-            annotations = local.service_annotations
+            type                  = "LoadBalancer"
+            externalTrafficPolicy = var.external_traffic_policy
+            annotations           = local.service_annotations
+          }
+          envoyDeployment = {
+            replicas = var.replicas
+            pod = {
+              # Spread replicas across nodes when possible; don't block
+              # scheduling when the pool is a single node.
+              affinity = {
+                podAntiAffinity = {
+                  preferredDuringSchedulingIgnoredDuringExecution = [{
+                    weight = 100
+                    podAffinityTerm = {
+                      topologyKey = "kubernetes.io/hostname"
+                      labelSelector = {
+                        matchLabels = { "gateway.envoyproxy.io/owning-gateway-name" = var.gateway_name }
+                      }
+                    }
+                  }]
+                }
+              }
+            }
           }
         }
       }
