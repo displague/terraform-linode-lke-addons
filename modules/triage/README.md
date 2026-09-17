@@ -25,6 +25,7 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_gh_token"></a> [gh\_token](#input\_gh\_token) | n/a | `any` | n/a | yes |
 | <a name="input_triage_host"></a> [triage\_host](#input\_triage\_host) | n/a | `any` | n/a | yes |
+| <a name="input_create_ingress"></a> [create\_ingress](#input\_create\_ingress) | Apply the nginx Ingress asset for `triage_host`. Set false when the host is routed by modules/gateway (an HTTPRoute) instead. | `bool` | `true` | no |
 
 ## Outputs
 

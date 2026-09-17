@@ -32,6 +32,7 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_issuer_email"></a> [issuer\_email](#input\_issuer\_email) | n/a | `any` | n/a | yes |
 | <a name="input_linode_api_token"></a> [linode\_api\_token](#input\_linode\_api\_token) | n/a | `any` | n/a | yes |
+| <a name="input_gateway_api_enabled"></a> [gateway\_api\_enabled](#input\_gateway\_api\_enabled) | Enable cert-manager's Gateway API support (`config.gatewayAPI.enabled`): Gateways annotated with `cert-manager.io/cluster-issuer` get a Certificate per HTTPS listener. Requires the Gateway API CRDs to exist before cert-manager starts. | `bool` | `false` | no |
 
 ## Outputs
 
