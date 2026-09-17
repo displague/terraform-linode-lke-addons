@@ -30,6 +30,11 @@ No modules.
 | <a name="input_k8s_version"></a> [k8s\_version](#input\_k8s\_version) | n/a | `string` | `"1.36"` | no |
 | <a name="input_max_count"></a> [max\_count](#input\_max\_count) | n/a | `number` | `3` | no |
 | <a name="input_min_count"></a> [min\_count](#input\_min\_count) | n/a | `number` | `1` | no |
+| <a name="input_pool_disk_encryption"></a> [pool\_disk\_encryption](#input\_pool\_disk\_encryption) | Local disk encryption at rest on the node pool. `"enabled"` or<br>`"disabled"`.<br><br>Fresh-pool-only: the Linode API rejects updates to this on an existing<br>pool. To turn encryption on for a running cluster you need to add a new<br>pool with `disk_encryption = "enabled"`, drain workloads onto it, and<br>delete the old pool. See<br>https://techdocs.akamai.com/cloud-computing/docs/local-disk-encryption | `string` | `null` | no |
+| <a name="input_pool_firewall_id"></a> [pool\_firewall\_id](#input\_pool\_firewall\_id) | Cloud Firewall to attach to the node pool. Pass the id of a<br>`linode_firewall` resource. Editable on a live pool — `terraform apply`<br>attaches / detaches without a node cycle. Free of charge on Linode. | `number` | `null` | no |
+| <a name="input_stack_type"></a> [stack\_type](#input\_stack\_type) | Cluster IP stack. `"ipv4"` (default, single-stack) or `"dual"` (dual-stack<br>v4+v6). Leaving `null` matches the pre-feature LKE behavior.<br><br>Fresh-cluster-only: verified against the API that `stack_type` is not<br>editable on an existing cluster. Only meaningful when this module is<br>provisioning a new cluster. | `string` | `null` | no |
+| <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id) | Linode VPC subnet the cluster's nodes attach to. Pairs with `vpc_id`.<br>Fresh-cluster-only (see `vpc_id`). | `number` | `null` | no |
+| <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | Linode VPC to place the cluster in. Requires `subnet_id` alongside.<br>Fresh-cluster-only: moving an existing cluster onto a VPC would require<br>recreate. Use with the `linode_vpc` / `linode_vpc_subnet` resources. | `number` | `null` | no |
 
 ## Outputs
 
