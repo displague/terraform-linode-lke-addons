@@ -3,6 +3,12 @@ name: generate-terraform-docs
 # Source: https://github.com/equinix-labs/terraform-equinix-kubernetes-addons/blob/main/.github/workflows/documentation.yaml
 
 on:
+  pull_request:
+    paths:
+      - '**/*.tpl'
+      - '**/*.tf'
+      - '**/README.md'
+      - '.github/workflows/documentation.yaml'
   push:
     branches:
       - main
@@ -11,8 +17,29 @@ on:
       - '**/*.tf'
 
 jobs:
+  # Pull requests: fail if the README tables are stale for the .tf changes
+  # in the PR. Regenerate locally with:
+  #   terraform-docs markdown table --output-file README.md --output-mode inject --recursive --recursive-path modules .
+  # (or `terraform-docs --recursive .` with the same flags this job passes).
+  check:
+    name: TF docs up to date
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: terraform-docs/gh-actions@v1.0.0
+        with:
+          find-dir: .
+          args: --sort-by required
+          indention: 2
+          git-push: "false"
+          fail-on-diff: "true"
+
+  # Pushes to main: regenerate and open/update ONE PR on the stable
+  # bot/generate-terraform-docs branch (see #32).
   tf-docs:
     name: TF docs
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
