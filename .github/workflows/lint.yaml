@@ -1,0 +1,100 @@
+name: terraform-lint
+# Two jobs:
+#  - check: on pull requests and pushes to main, fail if `terraform fmt`
+#    would change anything, and run tflint + `terraform validate`.
+#  - fix: on pushes to main only, run `terraform fmt -recursive` and open
+#    (or update) ONE pull request on the stable branch `bot/terraform-lint`,
+#    the same way documentation.yaml does for terraform-docs. A stable branch
+#    means back-to-back runs revise the open PR instead of stacking new ones.
+
+on:
+  pull_request:
+    paths:
+      - '**/*.tf'
+      - '.tflint.hcl'
+      - '.github/workflows/lint.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.tf'
+      - '.tflint.hcl'
+      - '.github/workflows/lint.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: fmt / tflint / validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive -diff
+
+      - name: terraform validate (root + modules)
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+
+      - name: tflint
+        env:
+          # Avoid GitHub API rate limits when tflint fetches its plugin.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Warnings are reported but don't fail the job yet: the existing tree
+        # has ~60 "recommended"-preset findings (required_version, provider
+        # constraints in modules, untyped variables). Tighten to
+        # --minimum-failure-severity=warning once those are cleaned up.
+        run: |
+          tflint --init
+          tflint --recursive --minimum-failure-severity=error
+
+  fix:
+    name: fmt fixes → bot/terraform-lint PR
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: []
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform fmt
+        run: terraform fmt -recursive
+
+      - name: Create or update pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'terraform fmt: automated action'
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          title: 'terraform fmt: automated action'
+          body: |
+            `terraform fmt -recursive` changes from the latest push to `main`.
+            This PR is revised in place on subsequent runs (stable branch).
+          # Stable branch name — the action UPSERTs a PR onto this branch, so
+          # back-to-back runs update the existing open PR instead of stacking.
+          branch: bot/terraform-lint
+          base: main
+          signoff: true
+          delete-branch: true
