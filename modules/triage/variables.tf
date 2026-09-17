@@ -1,5 +1,9 @@
-variable "gh_token" {}
-variable "triage_host" {}
+variable "gh_token" {
+  type = string
+}
+variable "triage_host" {
+  type = string
+}
 
 variable "create_ingress" {
   type        = bool

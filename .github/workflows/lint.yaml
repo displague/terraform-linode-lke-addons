@@ -54,13 +54,9 @@ jobs:
         env:
           # Avoid GitHub API rate limits when tflint fetches its plugin.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Warnings are reported but don't fail the job yet: the existing tree
-        # has ~60 "recommended"-preset findings (required_version, provider
-        # constraints in modules, untyped variables). Tighten to
-        # --minimum-failure-severity=warning once those are cleaned up.
         run: |
           tflint --init
-          tflint --recursive --minimum-failure-severity=error
+          tflint --recursive --minimum-failure-severity=warning
 
   fix:
     name: fmt fixes → bot/terraform-lint PR

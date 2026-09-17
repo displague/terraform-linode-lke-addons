@@ -1,7 +1,18 @@
-variable "lke_config" {}
-variable "k8s_version" { default = "1.36" }
-variable "min_count" { default = 1 }
-variable "max_count" { default = 3 }
+variable "lke_config" {
+  type = string
+}
+variable "k8s_version" {
+  type    = string
+  default = "1.36"
+}
+variable "min_count" {
+  type    = number
+  default = 1
+}
+variable "max_count" {
+  type    = number
+  default = 3
+}
 
 variable "control_plane_acl" {
   type = object({

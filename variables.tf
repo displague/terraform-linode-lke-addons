@@ -2,21 +2,33 @@ variable "external_dns_token_expiry" {
   description = "Expiry date for the Linode API token used by external-dns. RFC3339 format."
   type        = string
 }
-variable "linode_token" { description = "Your Linode API Authentication Token." }
-variable "issuer_email" { description = "An email address for ACME certificate registration." }
-variable "example_host" { description = "If set, an ingress will be created with this hostname used. The domain should be one managed by your Linode account." }
+variable "linode_token" {
+  type        = string
+  description = "Your Linode API Authentication Token."
+}
+variable "issuer_email" {
+  type        = string
+  description = "An email address for ACME certificate registration."
+}
+variable "example_host" {
+  type        = string
+  description = "If set, an ingress will be created with this hostname used. The domain should be one managed by your Linode account."
+}
 
 variable "k8s_version" {
+  type        = string
   description = "LKE K8s Version. Keep within Linode's currently-supported window (`linode-cli lke versions-list`)."
   default     = "1.36"
 }
 
 variable "longhorn_enabled" {
+  type        = bool
   default     = false
   description = "Whether Longhorn should be installed"
 }
 
 variable "gh_token" {
+  type        = string
   default     = ""
   description = "GH token for triage party"
   sensitive   = true
@@ -28,6 +40,7 @@ variable "gh_admin_users" {
 }
 
 variable "triage_host" {
+  type        = string
   default     = ""
   description = "hostname where triage party will reside"
 }
@@ -73,19 +86,23 @@ EOT
 }
 
 variable "jhub_hostname" {
+  type        = string
   default     = ""
   description = "hostname for jupyter hub"
 }
 
 variable "jhub_client_id" {
+  type        = string
   default     = ""
   description = "GH client_id for jhub"
 }
 variable "jhub_client_secret" {
+  type        = string
   default     = ""
   description = "GH client_secret for jhub"
 }
 variable "jhub_db_volume" {
+  type        = string
   default     = ""
   description = "PVC name for Hub DB Volume"
 }
