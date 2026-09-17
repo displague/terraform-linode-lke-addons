@@ -34,7 +34,7 @@ Assumes you're moving from three per-server LoadBalancers on `mc1.example.com`,
    the annotation in tfvars or let external-dns retire the stale records after
    the transition — it will notice mc-router owns them).
 
-Once the dust settles: 5 NBs → 2 (`ingress-nginx` + `mc-router`).
+Once the dust settles with a dedicated mc-router NB: N minecraft NBs → 1. With `modules/gateway` in front (the default), → 0 extra NBs.
 
 ### Why not share ingress-nginx's NodeBalancer? (don't)
 
@@ -47,12 +47,10 @@ its own ports. With ingress-nginx (80/443) and mc-router (25565) on one NB,
 whichever reconciled last wins and the other Service's ports vanish — we
 lost ingress 80/443 this way. One LoadBalancer Service == one NodeBalancer.
 
-The correct path to a single NB is to make mc-router a `ClusterIP` Service
-and expose 25565 on the **ingress-nginx** Service via its `tcp-services`
-ConfigMap (`--tcp-services-configmap`), forwarding to
-`mc-router/mc-router:25565`. Then there is exactly one LoadBalancer Service
-and ccm-linode owns exactly one NB. That's tracked as a follow-up; this
-module keeps a dedicated NB for now.
+The correct path to a single NB is what the root module does by default:
+run mc-router as a `ClusterIP` Service (`service_type = "ClusterIP"`) behind
+`modules/gateway`, whose one Gateway carries `tcp/25565` via a TCPRoute
+alongside the HTTP(S) listeners. One LoadBalancer Service, one NB.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

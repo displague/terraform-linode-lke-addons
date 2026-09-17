@@ -76,20 +76,6 @@ module "cert_manager" {
   gateway_api_enabled = var.gateway_enabled
 }
 
-module "ingress_nginx" {
-  count      = var.ingress_nginx_enabled ? 1 : 0
-  depends_on = [module.lke, module.cert_manager]
-  source     = "./modules/ingress_nginx"
-
-  # The example host moves to the Gateway's whoami app when it's enabled.
-  example_host = var.gateway_enabled ? "" : var.example_host
-}
-
-# Existing installs had this module un-indexed; keep state addresses stable.
-moved {
-  from = module.ingress_nginx
-  to   = module.ingress_nginx[0]
-}
 
 # Single Gateway API entrypoint (one NodeBalancer). See modules/gateway.
 module "gateway" {

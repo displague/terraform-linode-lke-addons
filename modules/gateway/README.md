@@ -26,7 +26,6 @@ gateway_ipv6_ingress  = true   # AAAA on the NB too, no dual-stack needed
 extra_http_routes = [
   { hostname = "app.example.com", namespace = "app", service = "app", port = 80 },
 ]
-ingress_nginx_enabled = false  # after DNS has moved; reaps the nginx NB
 ```
 
 ### Cutover (from ingress-nginx)
@@ -39,10 +38,11 @@ ingress_nginx_enabled = false  # after DNS has moved; reaps the nginx NB
    sources and re-points every host at the Gateway's NB, mc-router becomes
    ClusterIP behind the TCPRoute, the nginx Ingresses for jhub/triage are
    removed. Clients with cached DNS see a blip up to the TTL (180 s).
-3. `ingress_nginx_enabled = false`, `terraform apply`. ingress-nginx and
-   hairpin-proxy are uninstalled; its NB is reaped (`preserve=false`). Delete
-   the orphaned mc-router NB by hand (ccm-linode doesn't reap on Service
-   type change).
+3. (historical) ingress-nginx and hairpin-proxy were removed from this
+   module set once the Gateway owned DNS; their NodeBalancer was reaped
+   (`preserve=false`). If you migrated from a fork that still has them,
+   uninstall them and delete any orphaned NodeBalancer by hand (ccm-linode
+   doesn't reap on Service type change).
 
 ### Upgrading Envoy Gateway
 

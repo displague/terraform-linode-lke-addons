@@ -5,10 +5,10 @@ This Terraform module provisions Linode Kubernetes Engine (LKE) with common add-
 - External DNS
   External DNS is configured with a Linode API token scoped to DNS services.
 - Cert Manager
-  cert-manager is configured with an HTTP prover (which uses nginx-ingress).
-- Nginx Ingress Controller
-  This default ingress controller will use a single LoadBalancer Service for all Ingress objects.
-  The Ingress is configured with 0.2.1 of <https://github.com/compumike/hairpin-proxy#hairpin-proxy> which fixes problems with using the proxy protocol. (See the link for more details)
+  cert-manager is configured with a Linode DNS-01 solver and issues certificates for the Gateway's HTTPS listeners.
+- Gateway API entrypoint (Envoy Gateway)
+  One `Gateway` with `http/80` (redirect), one `https/443` listener per hostname, and `tcp/25565` for Minecraft — one LoadBalancer Service, one Linode NodeBalancer. Replaces ingress-nginx (unmaintained since March 2026) and the hairpin-proxy workaround it needed.
+- Minecraft (itzg), mc-router, JupyterHub, Triage Party, Longhorn — optional add-ons, see `modules/`.
 
 ## Variables
 
