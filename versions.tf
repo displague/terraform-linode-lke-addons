@@ -3,10 +3,7 @@ terraform {
   required_providers {
     linode = {
       source  = "linode/linode"
-      # 4.x drops attributes present in existing state (e.g. `dashboard_url`)
-      # and needs a deliberate migration; keep on 3.x until that's handled in
-      # its own PR.
-      version = "~> 3.1"
+      version = "~> 4.0"
     }
     kubectl = {
       source  = "gavinbunney/kubectl"
