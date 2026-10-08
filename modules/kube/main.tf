@@ -26,9 +26,9 @@ resource "linode_lke_cluster" "lke" {
       max = var.max_count
     }
 
-    # Cloud Firewall attachment on the node pool. Editable on a live pool:
-    # `terraform apply` on an existing cluster will attach/detach the
-    # firewall without cycling the nodes.
+    # Cloud Firewall attachment on the node pool. Applies when the pool is
+    # created; updates to an existing standard-tier pool are accepted by the
+    # API but ignored. See modules/cloud_firewall for live clusters.
     firewall_id = var.pool_firewall_id
 
     # Disk encryption at rest. The Linode API rejects updates to this on an

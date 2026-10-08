@@ -38,13 +38,13 @@ terraform apply
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_http"></a> [http](#provider\_http) | 3.6.2 |
-| <a name="provider_linode"></a> [linode](#provider\_linode) | 4.5.0 |
 
 ## Modules
 
 | Name | Source | Version |
 | ---- | ------ | ------- |
 | <a name="module_cert_manager"></a> [cert\_manager](#module\_cert\_manager) | ./modules/cert_manager | n/a |
+| <a name="module_cloud_firewall"></a> [cloud\_firewall](#module\_cloud\_firewall) | ./modules/cloud_firewall | n/a |
 | <a name="module_external_dns"></a> [external\_dns](#module\_external\_dns) | ./modules/external_dns | n/a |
 | <a name="module_gateway"></a> [gateway](#module\_gateway) | ./modules/gateway | n/a |
 | <a name="module_jhub"></a> [jhub](#module\_jhub) | ./modules/jhub | n/a |
@@ -58,7 +58,6 @@ terraform apply
 
 | Name | Type |
 | ---- | ---- |
-| [linode_firewall.nodes](https://registry.terraform.io/providers/linode/linode/latest/docs/resources/firewall) | resource |
 | [http_http.my_ipv4](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 | [http_http.my_ipv6](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 
@@ -71,6 +70,7 @@ terraform apply
 | <a name="input_issuer_email"></a> [issuer\_email](#input\_issuer\_email) | An email address for ACME certificate registration. | `string` | n/a | yes |
 | <a name="input_linode_token"></a> [linode\_token](#input\_linode\_token) | Your Linode API Authentication Token. | `string` | n/a | yes |
 | <a name="input_minecraft"></a> [minecraft](#input\_minecraft) | A list of minecraft servers to deploy. Each object should have the following fields:<br/>- namespace: the namespace of the minecraft server<br/>- port: the port to run the minecraft server on<br/>- ops: a list of minecraft usernames that will receive ops<br/>- motd: the minecraft MOTD<br/>- hostname: the hostname where minecraft will run<br/>- claim: existing claim<br/>- mc\_version: (optional) itzg image `VERSION` — pin to a specific minecraft<br/>  version like "1.21.8" when restoring a world from a much older DataVersion.<br/>  Defaults to "LATEST". | <pre>list(object(<br/>    {<br/>      namespace    = string<br/>      port         = number<br/>      ops          = string<br/>      motd         = string<br/>      hostname     = string<br/>      claim        = string<br/>      mc_version   = optional(string, "LATEST")<br/>      service_type = optional(string, "LoadBalancer")<br/>    }<br/>  ))</pre> | n/a | yes |
+| <a name="input_cloud_firewall_enabled"></a> [cloud\_firewall\_enabled](#input\_cloud\_firewall\_enabled) | Install Linode's cloud-firewall-controller (modules/cloud\_firewall), which<br/>keeps every node, including future ones, attached to a Cloud Firewall that<br/>only admits the LKE control plane, the nodes and NodeBalancers. Without<br/>it, NodePorts are reachable from the internet, bypassing the<br/>NodeBalancer. Uses LKE's existing API credential; no new token. | `bool` | `false` | no |
 | <a name="input_extra_http_routes"></a> [extra\_http\_routes](#input\_extra\_http\_routes) | Additional HTTP(S) hosts to route through the Gateway to an existing in-cluster Service (`namespace/service:port`). Each gets its own HTTPS listener + certificate. | <pre>list(object({<br/>    hostname        = string<br/>    namespace       = string<br/>    service         = string<br/>    port            = number<br/>    request_timeout = optional(string, "0s")<br/>  }))</pre> | `[]` | no |
 | <a name="input_gateway_enabled"></a> [gateway\_enabled](#input\_gateway\_enabled) | Front the cluster with a single Gateway API Gateway (modules/gateway,<br/>Envoy Gateway) instead of ingress-nginx + a separate mc-router<br/>LoadBalancer. When true: HTTPRoutes are created for the jhub / triage /<br/>example hosts and `extra_http_routes`, a TCPRoute fronts mc-router<br/>(which drops to ClusterIP), cert-manager's gateway-shim is enabled, and<br/>external-dns switches to the gateway-httproute / gateway-tcproute<br/>sources. This is the cluster's only entrypoint; set false only if you<br/>bring your own ingress. | `bool` | `true` | no |
 | <a name="input_gateway_ipv6_ingress"></a> [gateway\_ipv6\_ingress](#input\_gateway\_ipv6\_ingress) | Publish an IPv6 address on the Gateway's NodeBalancer too (frontend only; no dual-stack cluster needed). external-dns then adds AAAA records. | `bool` | `true` | no |
@@ -87,7 +87,6 @@ terraform apply
 | <a name="input_lke_acl_ipv6"></a> [lke\_acl\_ipv6](#input\_lke\_acl\_ipv6) | IPv6 CIDRs to allow through the LKE control-plane ACL. Ignored if `lke_acl_enabled = false`. | `list(string)` | `[]` | no |
 | <a name="input_longhorn_enabled"></a> [longhorn\_enabled](#input\_longhorn\_enabled) | Whether Longhorn should be installed | `bool` | `false` | no |
 | <a name="input_mc_router_enabled"></a> [mc\_router\_enabled](#input\_mc\_router\_enabled) | When true, deploy `modules/mc_router` (a single LoadBalancer that routes<br/>all minecraft traffic by handshake hostname) and force every entry in<br/>`var.minecraft` to `service_type = ClusterIP`. Consolidates N per-server<br/>NodeBalancers down to one. Requires clients to keep dialing the same<br/>per-server hostnames. | `bool` | `false` | no |
-| <a name="input_node_firewall_enabled"></a> [node\_firewall\_enabled](#input\_node\_firewall\_enabled) | Attach a Cloud Firewall to the node pool that only admits the LKE<br/>control plane, the nodes and NodeBalancers (Akamai's documented LKE<br/>rules), dropping all other inbound traffic. Without it, NodePorts are<br/>reachable from the internet, bypassing the NodeBalancer. Attaches and<br/>detaches on a live pool without cycling nodes, and is free of charge. | `bool` | `false` | no |
 | <a name="input_triage_host"></a> [triage\_host](#input\_triage\_host) | hostname where triage party will reside | `string` | `""` | no |
 
 ## Outputs
