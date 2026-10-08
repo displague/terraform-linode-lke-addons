@@ -34,6 +34,39 @@ terraform import 'module.minecraft[0].kubernetes_persistent_volume_claim.datadir
 Repeat for each element of the `minecraft` list. After the import terraform
 will see the PVC and simply own it going forward.
 
+### Upgrading a pinned `mc_version` several releases at once
+
+`mc_version = "LATEST"` servers pick up new releases on their next pod restart
+and run the world's built-in data upgrade on start. A server that was pinned
+(e.g. after restoring an old world) should be walked forward **one release at
+a time** rather than jumping straight to `LATEST` — skipping several releases
+in one start has nuked a world during the upgrade cleanup step.
+
+Procedure, per server:
+
+1. Snapshot the world first. From the running pod:
+   ```sh
+   kubectl -n <ns> exec deploy/minecraft -- sh -c 'cd /data && cp -a world world.pre-upgrade && tar czf - world' > world-backup.tgz
+   ```
+2. Confirm the `ops` names still resolve (see the section below).
+3. List the release chain between the pinned version and the target:
+   ```sh
+   curl -sS https://piston-meta.mojang.com/mc/game/version_manifest_v2.json \
+     | python3 -c 'import json,sys; print(*[v["id"] for v in json.load(sys.stdin)["versions"] if v["type"]=="release"][:15], sep="\n")'
+   ```
+4. For each release in the chain, set `mc_version` in `terraform.tfvars`, then
+   `terraform apply -target='module.minecraft[<index>]'`, wait for the rollout,
+   and check the pod log for `Starting minecraft server version <v>` followed
+   by `Done (...)`. Move on only once it has started cleanly.
+5. Verify `world/level.dat` reports the expected `DataVersion` at the end, then
+   either leave the pin at the target release or drop it to follow `LATEST`.
+
+Note that the 26.x releases restructure the save directory: `region/`,
+`entities/`, `poi/` and the `DIM-1`/`DIM1` dirs move under
+`world/dimensions/minecraft/<dimension>/`, and `playerdata/`, `stats/`,
+`advancements/` move under `world/players/`. An empty top-level `region/`
+after upgrading is expected, not data loss.
+
 ### Watch out: `ops` and Minecraft username renames
 
 The `ops` input is a comma-separated list of **current** Minecraft usernames. On
