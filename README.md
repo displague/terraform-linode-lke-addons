@@ -88,6 +88,7 @@ terraform apply
 | <a name="input_lke_acl_ipv6"></a> [lke\_acl\_ipv6](#input\_lke\_acl\_ipv6) | IPv6 CIDRs to allow through the LKE control-plane ACL. Ignored if `lke_acl_enabled = false`. | `list(string)` | `[]` | no |
 | <a name="input_longhorn_enabled"></a> [longhorn\_enabled](#input\_longhorn\_enabled) | Whether Longhorn should be installed | `bool` | `false` | no |
 | <a name="input_mc_router_enabled"></a> [mc\_router\_enabled](#input\_mc\_router\_enabled) | When true, deploy `modules/mc_router` (a single LoadBalancer that routes<br/>all minecraft traffic by handshake hostname) and force every entry in<br/>`var.minecraft` to `service_type = ClusterIP`. Consolidates N per-server<br/>NodeBalancers down to one. Requires clients to keep dialing the same<br/>per-server hostnames. | `bool` | `false` | no |
+| <a name="input_mc_router_proxy_protocol"></a> [mc\_router\_proxy\_protocol](#input\_mc\_router\_proxy\_protocol) | Real client IPs at mc-router via PROXY protocol: `off`, `accept` (mc-router accepts an optional header) or `on` (Envoy's TCPRoute, or mc-router's own NodeBalancer without a Gateway, also sends it). Roll out `accept` before `on`. With the Gateway, the IPs are only real once `gateway_proxy_protocol = "on"`. The minecraft servers themselves still see mc-router's pod IP. See modules/mc\_router. | `string` | `"off"` | no |
 | <a name="input_triage_host"></a> [triage\_host](#input\_triage\_host) | hostname where triage party will reside | `string` | `""` | no |
 
 ## Outputs

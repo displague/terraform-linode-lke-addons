@@ -48,6 +48,9 @@ variable "tcp_routes" {
     namespace = string
     service   = string
     port      = number
+    # Send PROXY v2 to the backend, carrying the client address Envoy saw
+    # (the real one once `proxy_protocol = "on"`). The backend must accept it.
+    proxy_protocol = optional(bool, false)
   }))
   default     = []
   description = <<-EOS
@@ -55,6 +58,9 @@ variable "tcp_routes" {
     backend does its own demux, e.g. mc-router routing Minecraft by handshake
     hostname). Each entry becomes a TCPRoute in `namespace` with the given
     hostnames published by external-dns against the Gateway address.
+    `proxy_protocol = true` adds a BackendTrafficPolicy so Envoy prepends a
+    PROXY v2 header to every connection it opens to that backend; enable it
+    only once the backend accepts the header.
   EOS
 }
 
