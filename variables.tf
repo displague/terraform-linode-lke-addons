@@ -21,15 +21,15 @@ variable "k8s_version" {
   default     = "1.36"
 }
 
-variable "node_firewall_enabled" {
+variable "cloud_firewall_enabled" {
   type        = bool
   default     = false
   description = <<-EOS
-    Attach a Cloud Firewall to the node pool that only admits the LKE
-    control plane, the nodes and NodeBalancers (Akamai's documented LKE
-    rules), dropping all other inbound traffic. Without it, NodePorts are
-    reachable from the internet, bypassing the NodeBalancer. Attaches and
-    detaches on a live pool without cycling nodes, and is free of charge.
+    Install Linode's cloud-firewall-controller (modules/cloud_firewall), which
+    keeps every node, including future ones, attached to a Cloud Firewall that
+    only admits the LKE control plane, the nodes and NodeBalancers. Without
+    it, NodePorts are reachable from the internet, bypassing the
+    NodeBalancer. Uses LKE's existing API credential; no new token.
   EOS
 }
 

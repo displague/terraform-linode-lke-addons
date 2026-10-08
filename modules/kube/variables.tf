@@ -79,8 +79,11 @@ variable "pool_firewall_id" {
   default     = null
   description = <<-EOS
     Cloud Firewall to attach to the node pool. Pass the id of a
-    `linode_firewall` resource. Editable on a live pool — `terraform apply`
-    attaches / detaches without a node cycle. Free of charge on Linode.
+    `linode_firewall` resource. Takes effect when the pool is created: on an
+    existing standard-tier pool the Linode API accepts the update but ignores
+    it (verified), so existing nodes stay unprotected. For a live cluster,
+    use the root `cloud_firewall_enabled` (modules/cloud_firewall) instead,
+    which also covers nodes added later.
   EOS
 }
 
