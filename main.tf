@@ -24,10 +24,87 @@ data "http" "my_ipv6" {
   }
 }
 
+# Cloud Firewall for the worker nodes: only the LKE control plane, the
+# nodes themselves and NodeBalancers get in. Without it every NodePort
+# (30000-32767) is reachable from the internet, so anything behind a
+# LoadBalancer Service can be reached directly, skipping the NodeBalancer.
+# That matters most with PROXY protocol, where a direct connection could
+# claim any client IP. Rules follow Akamai's "LKE network and firewall
+# details" (192.168.128.0/17: control plane and node private IPs;
+# 192.168.255.0/24: NodeBalancer back-end traffic).
+resource "linode_firewall" "nodes" {
+  count = var.node_firewall_enabled ? 1 : 0
+  label = "lke-tf-nodes"
+  tags  = ["lke", "terraform"]
+
+  inbound_policy  = "DROP"
+  outbound_policy = "ACCEPT"
+
+  inbound {
+    label    = "kubelet"
+    action   = "ACCEPT"
+    protocol = "TCP"
+    ports    = "10250,10256"
+    ipv4     = ["192.168.128.0/17"]
+  }
+  inbound {
+    label    = "wireguard"
+    action   = "ACCEPT"
+    protocol = "UDP"
+    ports    = "51820"
+    ipv4     = ["192.168.128.0/17"]
+  }
+  inbound {
+    label    = "calico-bgp"
+    action   = "ACCEPT"
+    protocol = "TCP"
+    ports    = "179"
+    ipv4     = ["192.168.128.0/17"]
+  }
+  inbound {
+    label    = "calico-typha"
+    action   = "ACCEPT"
+    protocol = "TCP"
+    ports    = "5473"
+    ipv4     = ["192.168.128.0/17"]
+  }
+  inbound {
+    # Calico's IP-in-IP pod overlay between nodes.
+    label    = "calico-ipip"
+    action   = "ACCEPT"
+    protocol = "IPENCAP"
+    ipv4     = ["192.168.128.0/17"]
+  }
+  inbound {
+    label    = "nodebalancer-tcp"
+    action   = "ACCEPT"
+    protocol = "TCP"
+    ports    = "30000-32767"
+    ipv4     = ["192.168.255.0/24"]
+  }
+  inbound {
+    label    = "nodebalancer-udp"
+    action   = "ACCEPT"
+    protocol = "UDP"
+    ports    = "30000-32767"
+    ipv4     = ["192.168.255.0/24"]
+  }
+  inbound {
+    # Path MTU discovery and diagnostics.
+    label    = "icmp"
+    action   = "ACCEPT"
+    protocol = "ICMP"
+    ipv4     = ["0.0.0.0/0"]
+    ipv6     = ["::/0"]
+  }
+}
+
 module "lke" {
   source      = "./modules/kube"
   lke_config  = "${path.module}/kube.config"
   k8s_version = var.k8s_version
+
+  pool_firewall_id = var.node_firewall_enabled ? linode_firewall.nodes[0].id : null
 
   control_plane_acl = var.lke_acl_enabled ? {
     enabled = true
