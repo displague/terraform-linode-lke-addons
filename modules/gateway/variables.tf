@@ -99,3 +99,22 @@ variable "replicas" {
   default     = 2
   description = "Envoy data-plane replicas. 2 so a single node recycle (LKE upgrades cycle nodes) never leaves the cluster without an entrypoint; a preferred anti-affinity spreads them across nodes when the pool has more than one."
 }
+
+variable "proxy_protocol" {
+  type        = string
+  default     = "off"
+  description = <<-EOS
+    Real client IPs via PROXY protocol: `off`, `accept` or `on`.
+    `accept` makes Envoy accept an optional PROXY header on every listener
+    (no visible change). `on` also has the NodeBalancer send PROXY v2, so
+    Envoy sees the client's address and passes it on in X-Forwarded-For.
+    Roll out `accept` before `on`. In-cluster clients that kube-proxy
+    short-circuits past the NodeBalancer keep working without a header.
+    Use `on` only with a node firewall (modules/cloud_firewall): otherwise
+    anyone reaching a NodePort directly can claim any client IP.
+  EOS
+  validation {
+    condition     = contains(["off", "accept", "on"], var.proxy_protocol)
+    error_message = "proxy_protocol must be off, accept or on."
+  }
+}

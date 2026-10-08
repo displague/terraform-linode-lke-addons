@@ -14,9 +14,23 @@ Listeners on the one Gateway:
 - `tcp/<tcp_port>` — raw TCP for `tcp_routes` (Minecraft via mc-router, which
   demuxes by handshake hostname).
 
-No PROXY protocol on purpose: a NodeBalancer is an L4 proxy, so client IPs
-would need PROXY protocol, and PROXY protocol is what forced the old
-`hairpin-proxy` workaround. Nothing here needs client IPs.
+Client IPs are optional (`proxy_protocol`). A NodeBalancer is an L4 proxy, so
+client IPs need PROXY protocol, which once forced the old `hairpin-proxy`
+workaround: in-cluster clients calling a public hostname are short-circuited
+by kube-proxy straight to Envoy, skipping the NodeBalancer that adds the
+header. Envoy now accepts the header as *optional*, so those connections work
+without it, while NodeBalancer traffic carries the real client address into
+`X-Forwarded-For`.
+
+Rollout:
+1. Enable the node firewall (root `cloud_firewall_enabled`). Optional headers
+   are only trustworthy when nothing but NodeBalancers can reach the
+   NodePorts.
+2. `proxy_protocol = "accept"`: Envoy accepts the header; nothing changes yet.
+3. `proxy_protocol = "on"`: the NodeBalancer sends PROXY v2 on every port.
+   Envoy strips it, so TCP backends see plain TCP.
+
+Reverse the order to roll back.
 
 ### Inputs (root-level)
 
@@ -77,6 +91,7 @@ No modules.
 | Name | Type |
 | ---- | ---- |
 | [helm_release.envoy_gateway](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
+| [kubectl_manifest.client_traffic_policy](https://registry.terraform.io/providers/gavinbunney/kubectl/latest/docs/resources/manifest) | resource |
 | [kubectl_manifest.envoyproxy](https://registry.terraform.io/providers/gavinbunney/kubectl/latest/docs/resources/manifest) | resource |
 | [kubectl_manifest.example_deployment](https://registry.terraform.io/providers/gavinbunney/kubectl/latest/docs/resources/manifest) | resource |
 | [kubectl_manifest.example_service](https://registry.terraform.io/providers/gavinbunney/kubectl/latest/docs/resources/manifest) | resource |
@@ -99,6 +114,7 @@ No modules.
 | <a name="input_http_routes"></a> [http\_routes](#input\_http\_routes) | HTTP(S) hosts to expose. For each entry the module creates an HTTPS<br/>listener on 443 with `hostname`, a cert-manager-issued certificate, and<br/>an HTTPRoute in `namespace` forwarding to `service:port`. Plain HTTP on 80<br/>is redirected to HTTPS for every host. `request_timeout` is the Gateway<br/>API HTTPRoute `timeouts.request`; the default `0s` disables it (websocket<br/>/ long-poll friendly, matches the old 1800s nginx read timeout in<br/>practice). | <pre>list(object({<br/>    hostname        = string<br/>    namespace       = string<br/>    service         = string<br/>    port            = number<br/>    request_timeout = optional(string, "0s")<br/>  }))</pre> | `[]` | no |
 | <a name="input_ipv6_ingress"></a> [ipv6\_ingress](#input\_ipv6\_ingress) | Ask ccm-linode to publish the NodeBalancer's IPv6 address too (`linode-loadbalancer-enable-ipv6-ingress`). Frontend only; no dual-stack cluster required. external-dns then publishes AAAA records alongside A. | `bool` | `true` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace that holds the Gateway, its EnvoyProxy config, the issued TLS secrets and the optional example app. (Envoy Gateway's own controller lives in `envoy-gateway-system`.) | `string` | `"gateway"` | no |
+| <a name="input_proxy_protocol"></a> [proxy\_protocol](#input\_proxy\_protocol) | Real client IPs via PROXY protocol: `off`, `accept` or `on`.<br/>`accept` makes Envoy accept an optional PROXY header on every listener<br/>(no visible change). `on` also has the NodeBalancer send PROXY v2, so<br/>Envoy sees the client's address and passes it on in X-Forwarded-For.<br/>Roll out `accept` before `on`. In-cluster clients that kube-proxy<br/>short-circuits past the NodeBalancer keep working without a header.<br/>Use `on` only with a node firewall (modules/cloud\_firewall): otherwise<br/>anyone reaching a NodePort directly can claim any client IP. | `string` | `"off"` | no |
 | <a name="input_replicas"></a> [replicas](#input\_replicas) | Envoy data-plane replicas. 2 so a single node recycle (LKE upgrades cycle nodes) never leaves the cluster without an entrypoint; a preferred anti-affinity spreads them across nodes when the pool has more than one. | `number` | `2` | no |
 | <a name="input_tcp_port"></a> [tcp\_port](#input\_tcp\_port) | External port of the TCP listener used by `tcp_routes`. | `number` | `25565` | no |
 | <a name="input_tcp_routes"></a> [tcp\_routes](#input\_tcp\_routes) | Raw TCP backends exposed on `tcp_port` (a single TCP listener; the<br/>backend does its own demux, e.g. mc-router routing Minecraft by handshake<br/>hostname). Each entry becomes a TCPRoute in `namespace` with the given<br/>hostnames published by external-dns against the Gateway address. | <pre>list(object({<br/>    hostnames = list(string) # DNS names external-dns should publish for this listener<br/>    namespace = string<br/>    service   = string<br/>    port      = number<br/>  }))</pre> | `[]` | no |
