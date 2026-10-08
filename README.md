@@ -38,6 +38,7 @@ terraform apply
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_http"></a> [http](#provider\_http) | 3.6.2 |
+| <a name="provider_linode"></a> [linode](#provider\_linode) | 4.5.0 |
 
 ## Modules
 
@@ -57,6 +58,7 @@ terraform apply
 
 | Name | Type |
 | ---- | ---- |
+| [linode_firewall.nodes](https://registry.terraform.io/providers/linode/linode/latest/docs/resources/firewall) | resource |
 | [http_http.my_ipv4](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 | [http_http.my_ipv6](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 
@@ -85,6 +87,7 @@ terraform apply
 | <a name="input_lke_acl_ipv6"></a> [lke\_acl\_ipv6](#input\_lke\_acl\_ipv6) | IPv6 CIDRs to allow through the LKE control-plane ACL. Ignored if `lke_acl_enabled = false`. | `list(string)` | `[]` | no |
 | <a name="input_longhorn_enabled"></a> [longhorn\_enabled](#input\_longhorn\_enabled) | Whether Longhorn should be installed | `bool` | `false` | no |
 | <a name="input_mc_router_enabled"></a> [mc\_router\_enabled](#input\_mc\_router\_enabled) | When true, deploy `modules/mc_router` (a single LoadBalancer that routes<br/>all minecraft traffic by handshake hostname) and force every entry in<br/>`var.minecraft` to `service_type = ClusterIP`. Consolidates N per-server<br/>NodeBalancers down to one. Requires clients to keep dialing the same<br/>per-server hostnames. | `bool` | `false` | no |
+| <a name="input_node_firewall_enabled"></a> [node\_firewall\_enabled](#input\_node\_firewall\_enabled) | Attach a Cloud Firewall to the node pool that only admits the LKE<br/>control plane, the nodes and NodeBalancers (Akamai's documented LKE<br/>rules), dropping all other inbound traffic. Without it, NodePorts are<br/>reachable from the internet, bypassing the NodeBalancer. Attaches and<br/>detaches on a live pool without cycling nodes, and is free of charge. | `bool` | `false` | no |
 | <a name="input_triage_host"></a> [triage\_host](#input\_triage\_host) | hostname where triage party will reside | `string` | `""` | no |
 
 ## Outputs
