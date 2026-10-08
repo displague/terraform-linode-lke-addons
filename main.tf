@@ -86,11 +86,12 @@ module "cert_manager" {
 
 # Single Gateway API entrypoint (one NodeBalancer). See modules/gateway.
 module "gateway" {
-  count        = var.gateway_enabled ? 1 : 0
-  depends_on   = [module.lke]
-  source       = "./modules/gateway"
-  ipv6_ingress = var.gateway_ipv6_ingress
-  example_host = var.example_host
+  count          = var.gateway_enabled ? 1 : 0
+  depends_on     = [module.lke]
+  source         = "./modules/gateway"
+  ipv6_ingress   = var.gateway_ipv6_ingress
+  example_host   = var.example_host
+  proxy_protocol = var.gateway_proxy_protocol
 
   http_routes = concat(
     var.example_host != "" ? [{ hostname = var.example_host, namespace = "gateway", service = "example", port = 80 }] : [],
@@ -105,6 +106,13 @@ module "gateway" {
     service   = "mc-router"
     port      = 25565
   }] : []
+}
+
+check "proxy_protocol_needs_node_firewall" {
+  assert {
+    condition     = var.gateway_proxy_protocol != "on" || var.cloud_firewall_enabled
+    error_message = "gateway_proxy_protocol = \"on\" without cloud_firewall_enabled: NodePorts are reachable from the internet, so client IPs can be forged with a PROXY header."
+  }
 }
 
 module "longhorn" {

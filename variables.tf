@@ -175,6 +175,16 @@ variable "gateway_ipv6_ingress" {
   description = "Publish an IPv6 address on the Gateway's NodeBalancer too (frontend only; no dual-stack cluster needed). external-dns then adds AAAA records."
 }
 
+variable "gateway_proxy_protocol" {
+  type        = string
+  default     = "off"
+  description = "Real client IPs at the Gateway via PROXY protocol: `off`, `accept` (Envoy accepts an optional header) or `on` (the NodeBalancer also sends it). Roll out `accept` before `on`, and enable `cloud_firewall_enabled` first. See modules/gateway."
+  validation {
+    condition     = contains(["off", "accept", "on"], var.gateway_proxy_protocol)
+    error_message = "gateway_proxy_protocol must be off, accept or on."
+  }
+}
+
 variable "extra_http_routes" {
   type = list(object({
     hostname        = string

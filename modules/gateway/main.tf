@@ -10,12 +10,15 @@
 # Linode NodeBalancer. That is the whole point: ingress-nginx + a separate
 # mc-router LoadBalancer cost two NBs; this costs one.
 #
-# No PROXY protocol. A Linode NodeBalancer is an L4 proxy, so client IPs
-# are only recoverable via PROXY protocol, and PROXY protocol is exactly what
-# forces the hairpin-proxy workaround (in-cluster clients that resolve a
-# public hostname get short-circuited by kube-proxy straight to the pod,
-# skipping the NB that would have added the PROXY header). Nothing here
-# needs client IPs, so we drop both.
+# Client IPs (var.proxy_protocol). A Linode NodeBalancer is an L4 proxy, so
+# client IPs only survive via PROXY protocol. PROXY protocol used to force a
+# hairpin-proxy workaround: in-cluster clients that resolve a public hostname
+# get short-circuited by kube-proxy straight to Envoy, skipping the NB that
+# adds the header (ccm-linode doesn't report ipMode: Proxy yet). Envoy can
+# now accept the header as optional, so short-circuited connections work
+# without it while NB traffic carries the real client IP into
+# X-Forwarded-For. Optional headers are only trustworthy when nothing but
+# NodeBalancers can reach the NodePorts: enable modules/cloud_firewall.
 
 resource "helm_release" "envoy_gateway" {
   name             = "envoy-gateway"
@@ -48,6 +51,11 @@ locals {
       # Disposable NB: external-dns keeps DNS in sync, certs live in-cluster.
       "service.beta.kubernetes.io/linode-loadbalancer-preserve" = "false"
     },
+    var.proxy_protocol == "on" ? {
+      # Every NB port prepends a PROXY v2 header (Envoy strips it, so TCP
+      # backends such as mc-router see plain TCP).
+      "service.beta.kubernetes.io/linode-loadbalancer-default-proxy-protocol" = "v2"
+    } : {},
     var.ipv6_ingress ? {
       "service.beta.kubernetes.io/linode-loadbalancer-enable-ipv6-ingress" = "true"
     } : {},
@@ -104,6 +112,28 @@ resource "kubectl_manifest" "envoyproxy" {
           }
         }
       }
+    }
+  })
+}
+
+# Accept PROXY protocol on every listener, as optional: connections from the
+# NodeBalancer carry it, in-cluster hairpinned ones don't. Applied before the
+# NB starts sending headers ("accept" first, then "on").
+resource "kubectl_manifest" "client_traffic_policy" {
+  count             = var.proxy_protocol == "off" ? 0 : 1
+  depends_on        = [kubectl_manifest.gateway]
+  server_side_apply = true
+  yaml_body = yamlencode({
+    apiVersion = "gateway.envoyproxy.io/v1alpha1"
+    kind       = "ClientTrafficPolicy"
+    metadata   = { name = "${var.gateway_name}-proxy-protocol", namespace = local.gw_ns }
+    spec = {
+      targetRefs = [{
+        group = "gateway.networking.k8s.io"
+        kind  = "Gateway"
+        name  = var.gateway_name
+      }]
+      proxyProtocol = { optional = true }
     }
   })
 }
