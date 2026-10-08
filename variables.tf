@@ -185,6 +185,16 @@ variable "gateway_proxy_protocol" {
   }
 }
 
+variable "mc_router_proxy_protocol" {
+  type        = string
+  default     = "off"
+  description = "Real client IPs at mc-router via PROXY protocol: `off`, `accept` (mc-router accepts an optional header) or `on` (Envoy's TCPRoute, or mc-router's own NodeBalancer without a Gateway, also sends it). Roll out `accept` before `on`. With the Gateway, the IPs are only real once `gateway_proxy_protocol = \"on\"`. The minecraft servers themselves still see mc-router's pod IP. See modules/mc_router."
+  validation {
+    condition     = contains(["off", "accept", "on"], var.mc_router_proxy_protocol)
+    error_message = "mc_router_proxy_protocol must be off, accept or on."
+  }
+}
+
 variable "extra_http_routes" {
   type = list(object({
     hostname        = string

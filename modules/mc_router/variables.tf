@@ -38,3 +38,28 @@ variable "service_type" {
     error_message = "service_type must be LoadBalancer or ClusterIP."
   }
 }
+
+variable "proxy_protocol" {
+  type        = string
+  default     = "off"
+  description = <<-EOS
+    Real client IPs at mc-router via PROXY protocol: `off`, `accept` or `on`.
+    `accept` makes mc-router accept an optional PROXY header
+    (RECEIVE_PROXY_PROTOCOL), so its connection logs and allow/deny lists see
+    the client's address. `on` also has the NodeBalancer send PROXY v2 when
+    `service_type = "LoadBalancer"`; behind a Gateway the sender is Envoy
+    (modules/gateway `tcp_routes[*].proxy_protocol`). Roll out `accept` before
+    `on`. mc-router never forwards the header to the minecraft servers, which
+    still see mc-router's pod IP (vanilla servers can't read PROXY).
+  EOS
+  validation {
+    condition     = contains(["off", "accept", "on"], var.proxy_protocol)
+    error_message = "proxy_protocol must be off, accept or on."
+  }
+}
+
+variable "trusted_proxies" {
+  type        = list(string)
+  default     = []
+  description = "CIDRs whose PROXY headers mc-router honours (TRUSTED_PROXIES); headers from anywhere else are discarded. Empty trusts every source, which is fine for a ClusterIP Service only reachable in-cluster. Ignored when `proxy_protocol = \"off\"`."
+}

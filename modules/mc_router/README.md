@@ -13,7 +13,27 @@ default 25565" UX while paying for exactly one NodeBalancer.
 |------|-------------|
 | `mappings` | list of `{ hostname, target }` — the external hostname a Minecraft client dials, and the in-cluster Service address:port to route it to. |
 | `external_port` | port exposed by the mc-router LoadBalancer (default `25565`). |
+| `proxy_protocol` | `off` / `accept` / `on`: real client IPs at mc-router via PROXY protocol (see below). |
+| `trusted_proxies` | CIDRs whose PROXY headers mc-router honours; empty trusts every source. |
 | `namespace` / `chart_version` | boring knobs. |
+
+### Real client IPs
+
+With the Gateway in front, the path is NodeBalancer → Envoy → mc-router →
+minecraft. Envoy consumes the NodeBalancer's PROXY header
+(`gateway_proxy_protocol`), so mc-router would only ever see an Envoy pod IP.
+`mc_router_proxy_protocol` at the root fixes that hop:
+
+1. `accept`: mc-router accepts an optional PROXY header
+   (`RECEIVE_PROXY_PROTOCOL`). Nothing sends one yet, so nothing changes.
+2. `on`: a `BackendTrafficPolicy` on the mc-router TCPRoute makes Envoy send
+   PROXY v2 with the client address it saw. Without the Gateway, mc-router's
+   own NodeBalancer sends it instead (needs `cloud_firewall_enabled`).
+
+mc-router's connection logs and allow/deny lists then see real IPs. The
+minecraft servers still log mc-router's pod IP: vanilla can't read PROXY, so
+mc-router doesn't forward it. Roll back in reverse order (`on` → `accept` →
+`off`).
 
 ### Cutover recipe
 

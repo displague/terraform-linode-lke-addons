@@ -23,14 +23,14 @@ resource "helm_release" "mc_router" {
   namespace        = var.namespace
   create_namespace = true
 
-  values = [jsonencode({
+  values = [jsonencode(merge({
     services = {
       minecraft = {
         type = var.service_type
         port = var.external_port
         # Only meaningful on a LoadBalancer Service; behind a Gateway the
         # TCPRoute carries the external-dns hostnames instead.
-        annotations = var.service_type != "LoadBalancer" ? {} : {
+        annotations = var.service_type != "LoadBalancer" ? {} : merge({
           # Publish every backing hostname as a DNS record pointing at this
           # single NodeBalancer via external-dns.
           "external-dns.alpha.kubernetes.io/hostname" = join(",", [for m in var.mappings : m.hostname])
@@ -39,7 +39,11 @@ resource "helm_release" "mc_router" {
           # cert is bound to the IP. Explicit `false` (ccm-linode's default)
           # so a future default flip can't leave a stale $10/mo NB behind.
           "service.beta.kubernetes.io/linode-loadbalancer-preserve" = "false"
-        }
+          }, var.proxy_protocol == "on" ? {
+          # The NB prepends PROXY v2; mc-router (RECEIVE_PROXY_PROTOCOL below)
+          # strips it. Only safe with a node firewall: see modules/cloud_firewall.
+          "service.beta.kubernetes.io/linode-loadbalancer-default-proxy-protocol" = "v2"
+        } : {})
       }
     }
     minecraftRouter = {
@@ -51,5 +55,12 @@ resource "helm_release" "mc_router" {
         }
       ]
     }
-  })]
+    }, var.proxy_protocol == "off" ? {} : {
+    # The header is optional (mc-router's listener policy is USE), so
+    # connections that skip the NodeBalancer / Envoy keep working without it.
+    extraEnv = merge(
+      { RECEIVE_PROXY_PROTOCOL = "true" },
+      length(var.trusted_proxies) == 0 ? {} : { TRUSTED_PROXIES = join(",", var.trusted_proxies) },
+    )
+  }))]
 }

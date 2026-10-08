@@ -261,6 +261,27 @@ resource "kubectl_manifest" "tcp_route" {
   })
 }
 
+# Envoy terminates the NodeBalancer's PROXY header, so a TCP backend only
+# learns the client address if Envoy sends a fresh one upstream.
+resource "kubectl_manifest" "tcp_route_proxy_protocol" {
+  for_each          = { for r in var.tcp_routes : "${r.namespace}-${r.service}" => r if r.proxy_protocol }
+  depends_on        = [kubectl_manifest.tcp_route]
+  server_side_apply = true
+  yaml_body = yamlencode({
+    apiVersion = "gateway.envoyproxy.io/v1alpha1"
+    kind       = "BackendTrafficPolicy"
+    metadata   = { name = "${each.value.service}-proxy-protocol", namespace = each.value.namespace }
+    spec = {
+      targetRefs = [{
+        group = "gateway.networking.k8s.io"
+        kind  = "TCPRoute"
+        name  = each.value.service
+      }]
+      proxyProtocol = { version = "V2" }
+    }
+  })
+}
+
 # Optional smoke-test app (traefik/whoami echoes the request it received).
 resource "kubectl_manifest" "example_deployment" {
   count             = var.example_host != "" ? 1 : 0

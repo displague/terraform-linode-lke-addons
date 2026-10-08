@@ -105,6 +105,8 @@ module "gateway" {
     namespace = "mc-router"
     service   = "mc-router"
     port      = 25565
+    # mc-router must accept the header before Envoy starts sending it.
+    proxy_protocol = var.mc_router_proxy_protocol == "on"
   }] : []
 }
 
@@ -112,6 +114,13 @@ check "proxy_protocol_needs_node_firewall" {
   assert {
     condition     = var.gateway_proxy_protocol != "on" || var.cloud_firewall_enabled
     error_message = "gateway_proxy_protocol = \"on\" without cloud_firewall_enabled: NodePorts are reachable from the internet, so client IPs can be forged with a PROXY header."
+  }
+}
+
+check "mc_router_proxy_protocol_needs_node_firewall" {
+  assert {
+    condition     = var.gateway_enabled || var.mc_router_proxy_protocol != "on" || var.cloud_firewall_enabled
+    error_message = "mc_router_proxy_protocol = \"on\" on mc-router's own NodeBalancer without cloud_firewall_enabled: its NodePort is reachable from the internet, so client IPs can be forged with a PROXY header."
   }
 }
 
@@ -135,10 +144,11 @@ module "minecraft" {
 }
 
 module "mc_router" {
-  count        = var.mc_router_enabled && length(var.minecraft) > 0 ? 1 : 0
-  depends_on   = [module.lke, module.minecraft]
-  source       = "./modules/mc_router"
-  service_type = var.gateway_enabled ? "ClusterIP" : "LoadBalancer"
+  count          = var.mc_router_enabled && length(var.minecraft) > 0 ? 1 : 0
+  depends_on     = [module.lke, module.minecraft]
+  source         = "./modules/mc_router"
+  service_type   = var.gateway_enabled ? "ClusterIP" : "LoadBalancer"
+  proxy_protocol = var.mc_router_proxy_protocol
   mappings = [
     for m in var.minecraft : {
       hostname = m.hostname
