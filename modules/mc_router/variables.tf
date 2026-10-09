@@ -63,3 +63,9 @@ variable "trusted_proxies" {
   default     = []
   description = "CIDRs whose PROXY headers mc-router honours (TRUSTED_PROXIES); headers from anywhere else are discarded. Empty trusts every source, which is fine for a ClusterIP Service only reachable in-cluster. Ignored when `proxy_protocol = \"off\"`."
 }
+
+variable "image_pull_secrets" {
+  type        = list(string)
+  default     = []
+  description = "Names of pull Secrets in the release namespace (e.g. Docker Hub credentials), passed to the chart's imagePullSecrets."
+}

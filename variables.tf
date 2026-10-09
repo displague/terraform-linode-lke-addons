@@ -207,3 +207,26 @@ variable "extra_http_routes" {
   description = "Additional HTTP(S) hosts to route through the Gateway to an existing in-cluster Service (`namespace/service:port`). Each gets its own HTTPS listener + certificate."
 }
 
+
+variable "dockerhub_username" {
+  type        = string
+  default     = ""
+  description = "Docker Hub username for authenticated image pulls. Empty pulls anonymously (rate-limited per IP)."
+}
+
+variable "dockerhub_token" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "Docker Hub personal access token (read-only on public repositories is enough). Used with dockerhub_username."
+}
+
+variable "dockerhub_token_expiry" {
+  type        = string
+  default     = ""
+  description = "When dockerhub_token expires, RFC3339 (e.g. 2027-10-09T00:00:00Z). Plans fail once it has passed and warn in the 30 days before. Empty skips the check."
+  validation {
+    condition     = var.dockerhub_token_expiry == "" || can(timeadd(var.dockerhub_token_expiry, "0s"))
+    error_message = "dockerhub_token_expiry must be an RFC3339 timestamp, e.g. 2027-10-09T00:00:00Z."
+  }
+}

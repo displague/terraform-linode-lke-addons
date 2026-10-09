@@ -2,3 +2,8 @@ external_dns_token_expiry = "2029-01-01T00:00:00Z" # example future expiry
 linode_token = ""
 issuer_email = "acme@example.org"
 example_host = "lketest.example.org"
+
+# Optional: authenticated Docker Hub pulls (avoids anonymous rate limits).
+# dockerhub_username     = "your-docker-hub-user"
+# dockerhub_token        = "dckr_pat_..."
+# dockerhub_token_expiry = "2027-10-09T00:00:00Z"
