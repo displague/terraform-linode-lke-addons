@@ -149,6 +149,9 @@ module "mc_router" {
   source         = "./modules/mc_router"
   service_type   = var.gateway_enabled ? "ClusterIP" : "LoadBalancer"
   proxy_protocol = var.mc_router_proxy_protocol
+  # A name only (no dependency): the Secret is created after the release,
+  # in the namespace the release creates.
+  image_pull_secrets = local.dockerhub_enabled ? ["dockerhub"] : []
   mappings = [
     for m in var.minecraft : {
       hostname = m.hostname
@@ -176,4 +179,48 @@ module "jhub" {
   gh_admin_users = var.gh_admin_users
   hub_db_volume  = var.jhub_db_volume
   create_ingress = !var.gateway_enabled
+}
+
+locals {
+  dockerhub_enabled = var.dockerhub_username != "" && var.dockerhub_token != ""
+  # Namespaces with pods pulling from Docker Hub under the `default`
+  # ServiceAccount; the itzg minecraft and triage images run `:latest`/Always.
+  dockerhub_default_sa_namespaces = concat(
+    [for m in var.minecraft : m.namespace],
+    (var.gh_token != "" && var.triage_host != "") ? ["triage-tinkerbell"] : [],
+    var.gateway_enabled && var.example_host != "" ? ["gateway"] : [],
+  )
+  mc_router_namespaces = var.mc_router_enabled && length(var.minecraft) > 0 ? ["mc-router"] : []
+}
+
+module "registry_auth" {
+  count      = local.dockerhub_enabled ? 1 : 0
+  depends_on = [module.minecraft, module.mc_router, module.triage, module.gateway]
+  source     = "./modules/registry_auth"
+  username   = var.dockerhub_username
+  token      = var.dockerhub_token
+  namespaces = concat(local.dockerhub_default_sa_namespaces, local.mc_router_namespaces)
+  # mc-router runs under its chart's own ServiceAccount; it gets the Secret
+  # through the chart's imagePullSecrets value instead.
+  default_service_account_namespaces = local.dockerhub_default_sa_namespaces
+}
+
+# Fail the plan once the Docker Hub token has expired, rather than letting
+# pulls quietly fall back to anonymous (and rate-limited) access.
+resource "terraform_data" "dockerhub_token_expiry" {
+  count = local.dockerhub_enabled && var.dockerhub_token_expiry != "" ? 1 : 0
+  input = var.dockerhub_token_expiry
+  lifecycle {
+    precondition {
+      condition     = timecmp(plantimestamp(), var.dockerhub_token_expiry) < 0
+      error_message = "dockerhub_token expired at ${var.dockerhub_token_expiry}. Create a new Docker Hub access token and update dockerhub_token and dockerhub_token_expiry in terraform.tfvars."
+    }
+  }
+}
+
+check "dockerhub_token_expiry_soon" {
+  assert {
+    condition     = !local.dockerhub_enabled || var.dockerhub_token_expiry == "" || timecmp(timeadd(plantimestamp(), "720h"), var.dockerhub_token_expiry) < 0
+    error_message = "dockerhub_token expires within 30 days (${var.dockerhub_token_expiry}). Rotate it soon."
+  }
 }

@@ -23,7 +23,9 @@ resource "helm_release" "mc_router" {
   namespace        = var.namespace
   create_namespace = true
 
-  values = [jsonencode(merge({
+  values = [jsonencode(merge(length(var.image_pull_secrets) > 0 ? {
+    imagePullSecrets = [for s in var.image_pull_secrets : { name = s }]
+    } : {}, {
     services = {
       minecraft = {
         type = var.service_type
