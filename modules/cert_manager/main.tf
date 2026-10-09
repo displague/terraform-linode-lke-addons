@@ -31,8 +31,14 @@ resource "kubernetes_secret" "linode_credentials" {
   }
 }
 
-data "kubectl_path_documents" "linode_webhook" {
-  pattern = "${path.module}/assets/linode-webhook.yaml"
+# A plain file() split, not a kubectl_path_documents data source: the root
+# module depends_on module.gateway, so any pending gateway change deferred
+# that data source to apply time and showed all 14 manifests as changed.
+locals {
+  linode_webhook_documents = [
+    for d in split("\n---\n", file("${path.module}/assets/linode-webhook.yaml")) : chomp(d)
+    if trimspace(d) != ""
+  ]
 }
 
 resource "kubectl_manifest" "linode_webhook" {
@@ -40,8 +46,8 @@ resource "kubectl_manifest" "linode_webhook" {
     helm_release.cert_manager,
     kubernetes_secret.linode_credentials
   ]
-  count     = 14
-  yaml_body = data.kubectl_path_documents.linode_webhook.documents[count.index]
+  count     = length(local.linode_webhook_documents)
+  yaml_body = local.linode_webhook_documents[count.index]
 }
 
 resource "kubectl_manifest" "cert_manager_issuer_prod" {
