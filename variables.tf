@@ -119,6 +119,18 @@ variable "jhub_db_volume" {
   description = "PVC name for Hub DB Volume"
 }
 
+variable "kubeconfig_path" {
+  type        = string
+  default     = null
+  description = <<-EOS
+    Where to write the cluster's kubeconfig, which the kubernetes, kubectl
+    and helm providers read. Defaults to `kube.config` in this module's
+    directory. Set it when calling this repository as a module (for example
+    `"$${path.root}/kube.config"`), so a CI job can fetch the kubeconfig from
+    the Linode API before `terraform plan` on a fresh runner.
+  EOS
+}
+
 variable "lke_acl_enabled" {
   type        = bool
   default     = false
