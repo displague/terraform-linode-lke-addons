@@ -26,7 +26,7 @@ data "http" "my_ipv6" {
 
 module "lke" {
   source      = "./modules/kube"
-  lke_config  = "${path.module}/kube.config"
+  lke_config  = coalesce(var.kubeconfig_path, "${path.module}/kube.config")
   k8s_version = var.k8s_version
 
   control_plane_acl = var.lke_acl_enabled ? {
