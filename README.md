@@ -48,6 +48,7 @@ terraform apply
 | <a name="module_cloud_firewall"></a> [cloud\_firewall](#module\_cloud\_firewall) | ./modules/cloud_firewall | n/a |
 | <a name="module_external_dns"></a> [external\_dns](#module\_external\_dns) | ./modules/external_dns | n/a |
 | <a name="module_gateway"></a> [gateway](#module\_gateway) | ./modules/gateway | n/a |
+| <a name="module_github_runners"></a> [github\_runners](#module\_github\_runners) | ./modules/github_runners | n/a |
 | <a name="module_jhub"></a> [jhub](#module\_jhub) | ./modules/jhub | n/a |
 | <a name="module_lke"></a> [lke](#module\_lke) | ./modules/kube | n/a |
 | <a name="module_longhorn"></a> [longhorn](#module\_longhorn) | ./modules/longhorn | n/a |
@@ -83,6 +84,9 @@ terraform apply
 | <a name="input_gateway_proxy_protocol"></a> [gateway\_proxy\_protocol](#input\_gateway\_proxy\_protocol) | Real client IPs at the Gateway via PROXY protocol: `off`, `accept` (Envoy accepts an optional header) or `on` (the NodeBalancer also sends it). Roll out `accept` before `on`, and enable `cloud_firewall_enabled` first. See modules/gateway. | `string` | `"off"` | no |
 | <a name="input_gh_admin_users"></a> [gh\_admin\_users](#input\_gh\_admin\_users) | GH admin\_users for JupyterHub | `list(string)` | `[]` | no |
 | <a name="input_gh_token"></a> [gh\_token](#input\_gh\_token) | GH token for triage party | `string` | `""` | no |
+| <a name="input_github_runner_app"></a> [github\_runner\_app](#input\_github\_runner\_app) | GitHub App credentials for the runners, preferred over `github_runner_token`. | <pre>object({<br/>    app_id          = string<br/>    installation_id = string<br/>    private_key     = string<br/>  })</pre> | `null` | no |
+| <a name="input_github_runner_scale_sets"></a> [github\_runner\_scale\_sets](#input\_github\_runner\_scale\_sets) | Self-hosted GitHub Actions runner scale sets (modules/github\_runners),<br/>keyed by the name workflows use in `runs-on`. Empty installs nothing.<br/>Needs `github_runner_token` or `github_runner_app`. Use them for private<br/>repositories only, and keep pipelines that manage this cluster on<br/>GitHub-hosted runners. | <pre>map(object({<br/>    config_url     = string<br/>    min_runners    = optional(number, 0)<br/>    max_runners    = optional(number, 2)<br/>    cpu_request    = optional(string, "500m")<br/>    memory_request = optional(string, "1Gi")<br/>    memory_limit   = optional(string, "3Gi")<br/>  }))</pre> | `{}` | no |
+| <a name="input_github_runner_token"></a> [github\_runner\_token](#input\_github\_runner\_token) | Fine-grained GitHub token with Administration read/write on the runner repositories. | `string` | `null` | no |
 | <a name="input_jhub_client_id"></a> [jhub\_client\_id](#input\_jhub\_client\_id) | GH client\_id for jhub | `string` | `""` | no |
 | <a name="input_jhub_client_secret"></a> [jhub\_client\_secret](#input\_jhub\_client\_secret) | GH client\_secret for jhub | `string` | `""` | no |
 | <a name="input_jhub_db_volume"></a> [jhub\_db\_volume](#input\_jhub\_db\_volume) | PVC name for Hub DB Volume | `string` | `""` | no |

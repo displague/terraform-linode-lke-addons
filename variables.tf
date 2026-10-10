@@ -242,3 +242,40 @@ variable "dockerhub_token_expiry" {
     error_message = "dockerhub_token_expiry must be an RFC3339 timestamp, e.g. 2027-10-09T00:00:00Z."
   }
 }
+
+variable "github_runner_scale_sets" {
+  type = map(object({
+    config_url     = string
+    min_runners    = optional(number, 0)
+    max_runners    = optional(number, 2)
+    cpu_request    = optional(string, "500m")
+    memory_request = optional(string, "1Gi")
+    memory_limit   = optional(string, "3Gi")
+  }))
+  default     = {}
+  description = <<-EOS
+    Self-hosted GitHub Actions runner scale sets (modules/github_runners),
+    keyed by the name workflows use in `runs-on`. Empty installs nothing.
+    Needs `github_runner_token` or `github_runner_app`. Use them for private
+    repositories only, and keep pipelines that manage this cluster on
+    GitHub-hosted runners.
+  EOS
+}
+
+variable "github_runner_token" {
+  type        = string
+  default     = null
+  sensitive   = true
+  description = "Fine-grained GitHub token with Administration read/write on the runner repositories."
+}
+
+variable "github_runner_app" {
+  type = object({
+    app_id          = string
+    installation_id = string
+    private_key     = string
+  })
+  default     = null
+  sensitive   = true
+  description = "GitHub App credentials for the runners, preferred over `github_runner_token`."
+}

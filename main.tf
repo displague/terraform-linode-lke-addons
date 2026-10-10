@@ -191,15 +191,30 @@ locals {
     var.gateway_enabled && var.example_host != "" ? ["gateway"] : [],
   )
   mc_router_namespaces = var.mc_router_enabled && length(var.minecraft) > 0 ? ["mc-router"] : []
+  # Runner pods use the chart's own ServiceAccount; the Secret reaches them
+  # through the scale set's pod template (image_pull_secrets).
+  github_runners_enabled    = length(var.github_runner_scale_sets) > 0
+  github_runners_namespaces = local.github_runners_enabled ? ["arc-runners"] : []
+}
+
+# Self-hosted GitHub Actions runners (modules/github_runners), scaled on demand.
+module "github_runners" {
+  count              = local.github_runners_enabled ? 1 : 0
+  depends_on         = [module.lke]
+  source             = "./modules/github_runners"
+  scale_sets         = var.github_runner_scale_sets
+  github_token       = var.github_runner_token
+  github_app         = var.github_runner_app
+  image_pull_secrets = local.dockerhub_enabled ? ["dockerhub"] : []
 }
 
 module "registry_auth" {
   count      = local.dockerhub_enabled ? 1 : 0
-  depends_on = [module.minecraft, module.mc_router, module.triage, module.gateway]
+  depends_on = [module.minecraft, module.mc_router, module.triage, module.gateway, module.github_runners]
   source     = "./modules/registry_auth"
   username   = var.dockerhub_username
   token      = var.dockerhub_token
-  namespaces = concat(local.dockerhub_default_sa_namespaces, local.mc_router_namespaces)
+  namespaces = concat(local.dockerhub_default_sa_namespaces, local.mc_router_namespaces, local.github_runners_namespaces)
   # mc-router runs under its chart's own ServiceAccount; it gets the Secret
   # through the chart's imagePullSecrets value instead.
   default_service_account_namespaces = local.dockerhub_default_sa_namespaces
