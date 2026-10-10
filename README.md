@@ -62,7 +62,6 @@ terraform apply
 | Name | Type |
 | ---- | ---- |
 | [terraform_data.dockerhub_token_expiry](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
-| [terraform_data.state_moved](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 | [http_http.my_ipv4](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 | [http_http.my_ipv6](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 
