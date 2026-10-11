@@ -126,3 +126,9 @@ variable "proxy_protocol" {
     error_message = "proxy_protocol must be off, accept or on."
   }
 }
+
+variable "access_log_strip_query" {
+  type        = bool
+  default     = true
+  description = "Log request paths without their query strings in Envoy's access log (otherwise Envoy Gateway's default JSON format). Query strings can carry short-lived credentials such as signed URLs."
+}
