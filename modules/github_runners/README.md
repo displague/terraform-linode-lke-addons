@@ -69,6 +69,7 @@ No modules.
 | <a name="input_image_pull_secrets"></a> [image\_pull\_secrets](#input\_image\_pull\_secrets) | Secrets in the runners namespace for pulling the runner and docker:dind images (for example Docker Hub credentials). | `list(string)` | `[]` | no |
 | <a name="input_runner_image"></a> [runner\_image](#input\_runner\_image) | Runner image. GitHub rejects runners more than 30 days behind the latest release, so `latest` is the usual choice. | `string` | `"ghcr.io/actions/actions-runner:latest"` | no |
 | <a name="input_runners_namespace"></a> [runners\_namespace](#input\_runners\_namespace) | n/a | `string` | `"arc-runners"` | no |
+| <a name="input_toolchain_cache"></a> [toolchain\_cache](#input\_toolchain\_cache) | A per-node cache directory (hostPath) mounted into every runner pod for<br/>toolchains that jobs otherwise download each time: uv's package cache<br/>and Python installs, Playwright browsers, npm's cache and the Actions<br/>tool cache (setup-node, setup-uv). These tools lock their caches, so<br/>concurrent jobs on a node are safe; a replaced node starts cold. Jobs can<br/>write to it, so a job could poison it for later jobs on that node: use<br/>it only for trusted (private) repositories. | <pre>object({<br/>    enabled   = optional(bool, false)<br/>    host_path = optional(string, "/var/cache/github-runners")<br/>  })</pre> | `{}` | no |
 
 ## Outputs
 
