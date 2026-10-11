@@ -214,9 +214,10 @@ variable "extra_http_routes" {
     service         = string
     port            = number
     request_timeout = optional(string, "0s")
+    path_prefixes   = optional(list(string), [])
   }))
   default     = []
-  description = "Additional HTTP(S) hosts to route through the Gateway to an existing in-cluster Service (`namespace/service:port`). Each gets its own HTTPS listener + certificate."
+  description = "Additional HTTP(S) hosts to route through the Gateway to an existing in-cluster Service (`namespace/service:port`). Each gets its own HTTPS listener + certificate. Set `path_prefixes` to route only those paths (the Gateway returns 404 for the rest), e.g. a sandbox origin that should serve nothing but `/apps/`."
 }
 
 

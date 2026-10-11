@@ -229,10 +229,17 @@ resource "kubectl_manifest" "http_route" {
         sectionName = local.https_listeners[each.key].name
       }]
       hostnames = [each.key]
-      rules = [{
-        backendRefs = [{ name = each.value.service, port = each.value.port }]
-        timeouts    = { request = each.value.request_timeout }
-      }]
+      # With path_prefixes, only those paths reach the service; the Gateway
+      # answers 404 for everything else on this hostname.
+      rules = [merge(
+        {
+          backendRefs = [{ name = each.value.service, port = each.value.port }]
+          timeouts    = { request = each.value.request_timeout }
+        },
+        length(each.value.path_prefixes) > 0 ? {
+          matches = [for prefix in each.value.path_prefixes : { path = { type = "PathPrefix", value = prefix } }]
+        } : {}
+      )]
     }
   })
 }

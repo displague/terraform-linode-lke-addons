@@ -29,12 +29,14 @@ variable "http_routes" {
     service         = string
     port            = number
     request_timeout = optional(string, "0s")
+    path_prefixes   = optional(list(string), [])
   }))
   default     = []
   description = <<-EOS
     HTTP(S) hosts to expose. For each entry the module creates an HTTPS
     listener on 443 with `hostname`, a cert-manager-issued certificate, and
-    an HTTPRoute in `namespace` forwarding to `service:port`. Plain HTTP on 80
+    an HTTPRoute in `namespace` forwarding to `service:port` (only the
+    `path_prefixes` paths, when set). Plain HTTP on 80
     is redirected to HTTPS for every host. `request_timeout` is the Gateway
     API HTTPRoute `timeouts.request`; the default `0s` disables it (websocket
     / long-poll friendly, matches the old 1800s nginx read timeout in
