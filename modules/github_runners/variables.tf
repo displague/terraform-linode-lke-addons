@@ -89,3 +89,20 @@ variable "image_cache_upstream_credentials" {
   sensitive   = true
   description = "Docker Hub credentials for the cache's upstream pulls (avoids anonymous rate limits)."
 }
+
+variable "toolchain_cache" {
+  type = object({
+    enabled   = optional(bool, false)
+    host_path = optional(string, "/var/cache/github-runners")
+  })
+  default     = {}
+  description = <<-EOS
+    A per-node cache directory (hostPath) mounted into every runner pod for
+    toolchains that jobs otherwise download each time: uv's package cache
+    and Python installs, Playwright browsers, npm's cache and the Actions
+    tool cache (setup-node, setup-uv). These tools lock their caches, so
+    concurrent jobs on a node are safe; a replaced node starts cold. Jobs can
+    write to it, so a job could poison it for later jobs on that node: use
+    it only for trusted (private) repositories.
+  EOS
+}

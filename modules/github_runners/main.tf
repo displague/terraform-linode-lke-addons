@@ -79,8 +79,15 @@ resource "helm_release" "scale_set" {
     template = {
       spec = merge(
         { imagePullSecrets = [for s in var.image_pull_secrets : { name = s }] },
-        merge([for _ in local.cache_on : {
-          initContainers = [
+        merge([for _ in local.tmpl_on : {
+          initContainers = concat([for _ in local.tool_on : {
+            # hostPath directories are created root-owned; hand them to the runner user.
+            name            = "toolchain-cache-owner"
+            image           = var.runner_image
+            command         = ["sh", "-c", "install -d -o 1001 -g 123 ${join(" ", [for k, _ in local.tool_dirs : "/cache/${k}"])}"]
+            securityContext = { runAsUser = 0 }
+            volumeMounts    = [{ name = "toolchain-root", mountPath = "/cache" }]
+            }], [
             {
               name         = "init-dind-externals"
               image        = var.runner_image
@@ -90,10 +97,10 @@ resource "helm_release" "scale_set" {
             {
               name  = "dind"
               image = "docker:dind"
-              args = [
-                "dockerd", "--host=unix:///var/run/docker.sock", "--group=$(DOCKER_GROUP_GID)",
-                "--registry-mirror=http://${local.cache_host}", "--insecure-registry=${local.cache_host}",
-              ]
+              args = concat(
+                ["dockerd", "--host=unix:///var/run/docker.sock", "--group=$(DOCKER_GROUP_GID)"],
+                local.cache_enabled ? ["--registry-mirror=http://${local.cache_host}", "--insecure-registry=${local.cache_host}"] : [],
+              )
               env             = [{ name = "DOCKER_GROUP_GID", value = "123" }]
               securityContext = { privileged = true }
               restartPolicy   = "Always"
@@ -104,8 +111,12 @@ resource "helm_release" "scale_set" {
                 { name = "dind-externals", mountPath = "/home/runner/externals" },
               ]
             },
-          ]
-          volumes = [{ name = "work", emptyDir = {} }, { name = "dind-sock", emptyDir = {} }, { name = "dind-externals", emptyDir = {} }]
+          ])
+          volumes = concat(
+            [{ name = "work", emptyDir = {} }, { name = "dind-sock", emptyDir = {} }, { name = "dind-externals", emptyDir = {} }],
+            [for _ in local.tool_on : { name = "toolchain-root", hostPath = { path = var.toolchain_cache.host_path, type = "DirectoryOrCreate" } }],
+            flatten([for _ in local.tool_on : [for k, _ in local.tool_dirs : { name = k, hostPath = { path = "${var.toolchain_cache.host_path}/${k}", type = "DirectoryOrCreate" } }]]),
+          )
         }]...),
         {
           containers = [merge(
@@ -118,24 +129,34 @@ resource "helm_release" "scale_set" {
                 limits   = { memory = each.value.memory_limit }
               }
             },
-            merge([for _ in local.cache_on : {
-              env = [
-                { name = "DOCKER_HOST", value = "unix:///var/run/docker.sock" },
-                { name = "RUNNER_WAIT_FOR_DOCKER_IN_SECONDS", value = "120" },
-              ]
-              volumeMounts = [
-                { name = "work", mountPath = "/home/runner/_work" },
-                { name = "dind-sock", mountPath = "/var/run" },
-              ]
+            merge([for _ in local.tmpl_on : {
+              env = concat(
+                [
+                  { name = "DOCKER_HOST", value = "unix:///var/run/docker.sock" },
+                  { name = "RUNNER_WAIT_FOR_DOCKER_IN_SECONDS", value = "120" },
+                ],
+                # setup-node/setup-uv keep their downloads in the tool cache.
+                local.toolchain ? [
+                  { name = "RUNNER_TOOL_CACHE", value = "/home/runner/.cache/toolcache" },
+                  { name = "AGENT_TOOLSDIRECTORY", value = "/home/runner/.cache/toolcache" },
+                ] : [],
+              )
+              volumeMounts = concat(
+                [
+                  { name = "work", mountPath = "/home/runner/_work" },
+                  { name = "dind-sock", mountPath = "/var/run" },
+                ],
+                [for k, path in(local.toolchain ? local.tool_dirs : {}) : { name = k, mountPath = path }],
+              )
             }]...)
           )]
         }
       )
     }
     },
-    # With the image cache, the chart's dind template is spelled out (above)
-    # so the Docker daemon can take mirror flags; otherwise the chart builds it.
-    merge([for _ in local.cache_off : { containerMode = { type = "dind" } }]...)
+    # With either cache, the chart's dind template is spelled out (above);
+    # otherwise the chart builds it.
+    merge([for _ in local.tmpl_off : { containerMode = { type = "dind" } }]...)
   ))]
 }
 
@@ -144,8 +165,20 @@ locals {
   cache_enabled = var.image_cache.enabled
   # One-element lists for merge([for _ in ... : {...}]...), so optional
   # blocks of different shapes can be merged in only when needed.
-  cache_on   = local.cache_enabled ? [1] : []
-  cache_off  = local.cache_enabled ? [] : [1]
+
+  # The chart's dind template is spelled out when either cache needs to
+  # change the pod (mirror flags, cache mounts).
+  toolchain = var.toolchain_cache.enabled
+  explicit  = local.cache_enabled || local.toolchain
+  tmpl_on   = local.explicit ? [1] : []
+  tmpl_off  = local.explicit ? [] : [1]
+  tool_on   = local.toolchain ? [1] : []
+  # Each tool's cache, under the runner's home.
+  tool_dirs = {
+    "toolchain-cache"  = "/home/runner/.cache"
+    "toolchain-python" = "/home/runner/.local/share/uv"
+    "toolchain-npm"    = "/home/runner/.npm"
+  }
   cache_host = "registry-cache.${var.runners_namespace}.svc.cluster.local:5000"
 }
 

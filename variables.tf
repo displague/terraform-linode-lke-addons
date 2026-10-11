@@ -297,3 +297,18 @@ variable "github_runner_image_cache" {
     Uses the Docker Hub credentials above for upstream pulls when set.
   EOS
 }
+
+variable "github_runner_toolchain_cache" {
+  type = object({
+    enabled   = optional(bool, false)
+    host_path = optional(string, "/var/cache/github-runners")
+  })
+  default     = {}
+  description = <<-EOS
+    Per-node toolchain cache for the self-hosted runners
+    (modules/github_runners `toolchain_cache`): a hostPath directory holding
+    uv's package cache and Python installs, Playwright browsers, npm's cache
+    and the Actions tool cache, so jobs stop re-downloading them. Jobs can
+    write to it; use it only for trusted (private) repositories.
+  EOS
+}
