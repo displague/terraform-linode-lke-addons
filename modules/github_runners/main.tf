@@ -66,30 +66,193 @@ resource "helm_release" "scale_set" {
   version    = var.chart_version
   namespace  = kubernetes_namespace_v1.runners.metadata[0].name
 
-  values = [yamlencode({
+  values = [yamlencode(merge({
     githubConfigUrl    = each.value.config_url
     githubConfigSecret = kubernetes_secret_v1.github.metadata[0].name
     runnerScaleSetName = each.key
     minRunners         = each.value.min_runners
     maxRunners         = each.value.max_runners
-    containerMode      = { type = "dind" }
     controllerServiceAccount = {
       namespace = kubernetes_namespace_v1.controller.metadata[0].name
       name      = "arc-gha-rs-controller"
     }
     template = {
-      spec = {
-        imagePullSecrets = [for s in var.image_pull_secrets : { name = s }]
-        containers = [{
-          name    = "runner"
-          image   = var.runner_image
-          command = ["/home/runner/run.sh"]
-          resources = {
-            requests = { cpu = each.value.cpu_request, memory = each.value.memory_request }
-            limits   = { memory = each.value.memory_limit }
+      spec = merge(
+        { imagePullSecrets = [for s in var.image_pull_secrets : { name = s }] },
+        merge([for _ in local.cache_on : {
+          initContainers = [
+            {
+              name         = "init-dind-externals"
+              image        = var.runner_image
+              command      = ["cp", "-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
+              volumeMounts = [{ name = "dind-externals", mountPath = "/home/runner/tmpDir" }]
+            },
+            {
+              name  = "dind"
+              image = "docker:dind"
+              args = [
+                "dockerd", "--host=unix:///var/run/docker.sock", "--group=$(DOCKER_GROUP_GID)",
+                "--registry-mirror=http://${local.cache_host}", "--insecure-registry=${local.cache_host}",
+              ]
+              env             = [{ name = "DOCKER_GROUP_GID", value = "123" }]
+              securityContext = { privileged = true }
+              restartPolicy   = "Always"
+              startupProbe    = { exec = { command = ["docker", "info"] }, initialDelaySeconds = 0, failureThreshold = 24, periodSeconds = 5 }
+              volumeMounts = [
+                { name = "work", mountPath = "/home/runner/_work" },
+                { name = "dind-sock", mountPath = "/var/run" },
+                { name = "dind-externals", mountPath = "/home/runner/externals" },
+              ]
+            },
+          ]
+          volumes = [{ name = "work", emptyDir = {} }, { name = "dind-sock", emptyDir = {} }, { name = "dind-externals", emptyDir = {} }]
+        }]...),
+        {
+          containers = [merge(
+            {
+              name    = "runner"
+              image   = var.runner_image
+              command = ["/home/runner/run.sh"]
+              resources = {
+                requests = { cpu = each.value.cpu_request, memory = each.value.memory_request }
+                limits   = { memory = each.value.memory_limit }
+              }
+            },
+            merge([for _ in local.cache_on : {
+              env = [
+                { name = "DOCKER_HOST", value = "unix:///var/run/docker.sock" },
+                { name = "RUNNER_WAIT_FOR_DOCKER_IN_SECONDS", value = "120" },
+              ]
+              volumeMounts = [
+                { name = "work", mountPath = "/home/runner/_work" },
+                { name = "dind-sock", mountPath = "/var/run" },
+              ]
+            }]...)
+          )]
+        }
+      )
+    }
+    },
+    # With the image cache, the chart's dind template is spelled out (above)
+    # so the Docker daemon can take mirror flags; otherwise the chart builds it.
+    merge([for _ in local.cache_off : { containerMode = { type = "dind" } }]...)
+  ))]
+}
+
+# ---------- optional pull-through image cache ----------
+locals {
+  cache_enabled = var.image_cache.enabled
+  # One-element lists for merge([for _ in ... : {...}]...), so optional
+  # blocks of different shapes can be merged in only when needed.
+  cache_on   = local.cache_enabled ? [1] : []
+  cache_off  = local.cache_enabled ? [] : [1]
+  cache_host = "registry-cache.${var.runners_namespace}.svc.cluster.local:5000"
+}
+
+resource "kubernetes_persistent_volume_claim_v1" "image_cache" {
+  count = local.cache_enabled ? 1 : 0
+  metadata {
+    name      = "registry-cache"
+    namespace = kubernetes_namespace_v1.runners.metadata[0].name
+  }
+  spec {
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = var.image_cache.storage_class
+    resources {
+      requests = { storage = var.image_cache.size }
+    }
+  }
+  wait_until_bound = false
+}
+
+resource "kubernetes_secret_v1" "image_cache_upstream" {
+  count = local.cache_enabled && var.image_cache_upstream_credentials != null ? 1 : 0
+  metadata {
+    name      = "registry-cache-upstream"
+    namespace = kubernetes_namespace_v1.runners.metadata[0].name
+  }
+  data = {
+    REGISTRY_PROXY_USERNAME = var.image_cache_upstream_credentials.username
+    REGISTRY_PROXY_PASSWORD = var.image_cache_upstream_credentials.password
+  }
+}
+
+resource "kubernetes_deployment_v1" "image_cache" {
+  count = local.cache_enabled ? 1 : 0
+  metadata {
+    name      = "registry-cache"
+    namespace = kubernetes_namespace_v1.runners.metadata[0].name
+    labels    = { app = "registry-cache" }
+  }
+  spec {
+    replicas = 1
+    # One block volume, attached to one node at a time.
+    strategy { type = "Recreate" }
+    selector { match_labels = { app = "registry-cache" } }
+    template {
+      metadata { labels = { app = "registry-cache" } }
+      spec {
+        dynamic "image_pull_secrets" {
+          for_each = var.image_pull_secrets
+          content { name = image_pull_secrets.value }
+        }
+        container {
+          name  = "registry"
+          image = var.image_cache.image
+          port { container_port = 5000 }
+          env {
+            name  = "REGISTRY_PROXY_REMOTEURL"
+            value = "https://registry-1.docker.io"
           }
-        }]
+          env {
+            name  = "REGISTRY_PROXY_TTL"
+            value = var.image_cache.ttl
+          }
+          env {
+            name  = "REGISTRY_STORAGE_DELETE_ENABLED"
+            value = "true"
+          }
+          dynamic "env_from" {
+            for_each = length(kubernetes_secret_v1.image_cache_upstream) > 0 ? [1] : []
+            content {
+              secret_ref { name = kubernetes_secret_v1.image_cache_upstream[0].metadata[0].name }
+            }
+          }
+          volume_mount {
+            name       = "data"
+            mount_path = "/var/lib/registry"
+          }
+          readiness_probe {
+            http_get {
+              path = "/v2/"
+              port = 5000
+            }
+          }
+          resources {
+            requests = { cpu = "50m", memory = "64Mi" }
+            limits   = { memory = "512Mi" }
+          }
+        }
+        volume {
+          name = "data"
+          persistent_volume_claim { claim_name = kubernetes_persistent_volume_claim_v1.image_cache[0].metadata[0].name }
+        }
       }
     }
-  })]
+  }
+}
+
+resource "kubernetes_service_v1" "image_cache" {
+  count = local.cache_enabled ? 1 : 0
+  metadata {
+    name      = "registry-cache"
+    namespace = kubernetes_namespace_v1.runners.metadata[0].name
+  }
+  spec {
+    selector = { app = "registry-cache" }
+    port {
+      port        = 5000
+      target_port = 5000
+    }
+  }
 }

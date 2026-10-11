@@ -280,3 +280,20 @@ variable "github_runner_app" {
   sensitive   = true
   description = "GitHub App credentials for the runners, preferred over `github_runner_token`."
 }
+
+variable "github_runner_image_cache" {
+  type = object({
+    enabled       = optional(bool, false)
+    size          = optional(string, "20Gi")
+    storage_class = optional(string)
+    image         = optional(string, "registry:2.8.3")
+    ttl           = optional(string, "168h")
+  })
+  default     = {}
+  description = <<-EOS
+    Pull-through Docker Hub cache for the self-hosted runners
+    (modules/github_runners `image_cache`): a registry in proxy mode on a
+    block-storage volume, used as each runner's Docker registry mirror.
+    Uses the Docker Hub credentials above for upstream pulls when set.
+  EOS
+}

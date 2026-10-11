@@ -47,9 +47,13 @@ No modules.
 | ---- | ---- |
 | [helm_release.controller](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 | [helm_release.scale_set](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
+| [kubernetes_deployment_v1.image_cache](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/deployment_v1) | resource |
 | [kubernetes_namespace_v1.controller](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/namespace_v1) | resource |
 | [kubernetes_namespace_v1.runners](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/namespace_v1) | resource |
+| [kubernetes_persistent_volume_claim_v1.image_cache](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/persistent_volume_claim_v1) | resource |
 | [kubernetes_secret_v1.github](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret_v1) | resource |
+| [kubernetes_secret_v1.image_cache_upstream](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret_v1) | resource |
+| [kubernetes_service_v1.image_cache](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/service_v1) | resource |
 
 ## Inputs
 
@@ -60,6 +64,8 @@ No modules.
 | <a name="input_controller_namespace"></a> [controller\_namespace](#input\_controller\_namespace) | n/a | `string` | `"arc-systems"` | no |
 | <a name="input_github_app"></a> [github\_app](#input\_github\_app) | GitHub App credentials, preferred over a token. The app needs Administration read/write on the repositories. | <pre>object({<br/>    app_id          = string<br/>    installation_id = string<br/>    private_key     = string<br/>  })</pre> | `null` | no |
 | <a name="input_github_token"></a> [github\_token](#input\_github\_token) | Fine-grained personal access token with Administration read/write on each repository. Ignored when `github_app` is set. | `string` | `null` | no |
+| <a name="input_image_cache"></a> [image\_cache](#input\_image\_cache) | A pull-through Docker Hub cache for the runners' Docker daemons: a<br/>`registry` in proxy mode on a persistent volume (block storage, one<br/>replica), set as each runner's `--registry-mirror`. The first job pulls<br/>an image from Docker Hub; later jobs get it from the cluster. Mirrors<br/>only apply to Docker Hub images (docker.io/...). | <pre>object({<br/>    enabled       = optional(bool, false)<br/>    size          = optional(string, "20Gi")<br/>    storage_class = optional(string)<br/>    image         = optional(string, "registry:2.8.3")<br/>    ttl           = optional(string, "168h")<br/>  })</pre> | `{}` | no |
+| <a name="input_image_cache_upstream_credentials"></a> [image\_cache\_upstream\_credentials](#input\_image\_cache\_upstream\_credentials) | Docker Hub credentials for the cache's upstream pulls (avoids anonymous rate limits). | <pre>object({<br/>    username = string<br/>    password = string<br/>  })</pre> | `null` | no |
 | <a name="input_image_pull_secrets"></a> [image\_pull\_secrets](#input\_image\_pull\_secrets) | Secrets in the runners namespace for pulling the runner and docker:dind images (for example Docker Hub credentials). | `list(string)` | `[]` | no |
 | <a name="input_runner_image"></a> [runner\_image](#input\_runner\_image) | Runner image. GitHub rejects runners more than 30 days behind the latest release, so `latest` is the usual choice. | `string` | `"ghcr.io/actions/actions-runner:latest"` | no |
 | <a name="input_runners_namespace"></a> [runners\_namespace](#input\_runners\_namespace) | n/a | `string` | `"arc-runners"` | no |
