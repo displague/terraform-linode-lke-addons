@@ -206,6 +206,11 @@ module "github_runners" {
   github_token       = var.github_runner_token
   github_app         = var.github_runner_app
   image_pull_secrets = local.dockerhub_enabled ? ["dockerhub"] : []
+  image_cache        = var.github_runner_image_cache
+  image_cache_upstream_credentials = local.dockerhub_enabled ? {
+    username = var.dockerhub_username
+    password = var.dockerhub_token
+  } : null
 }
 
 module "registry_auth" {
