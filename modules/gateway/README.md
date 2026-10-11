@@ -107,6 +107,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
+| <a name="input_access_log_strip_query"></a> [access\_log\_strip\_query](#input\_access\_log\_strip\_query) | Log request paths without their query strings in Envoy's access log (otherwise Envoy Gateway's default JSON format). Query strings can carry short-lived credentials such as signed URLs. | `bool` | `true` | no |
 | <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | envoyproxy/gateway-helm chart version. Ships the Gateway API CRDs (experimental channel, so TCPRoute is included). Bump deliberately: CRD upgrades are manual with helm. | `string` | `"v1.9.1"` | no |
 | <a name="input_cluster_issuer"></a> [cluster\_issuer](#input\_cluster\_issuer) | cert-manager ClusterIssuer used (via the gateway-shim annotation) to issue a certificate per HTTPS listener. | `string` | `"letsencrypt-prod"` | no |
 | <a name="input_example_host"></a> [example\_host](#input\_example\_host) | If set, deploy a tiny `whoami` app in the module namespace and expose it at this hostname. Handy smoke test: it echoes the request headers it received. | `string` | `""` | no |
