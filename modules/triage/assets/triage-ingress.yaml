@@ -10,8 +10,8 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "1800"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "1800"
     use-proxy-protocol: "true"
-  name: triage-tinkerbell
-  namespace: triage-tinkerbell
+  name: triage-party
+  namespace: ${namespace}
 spec:
   rules:
   - host: ${triage_host}

@@ -57,6 +57,24 @@ variable "triage_host" {
   description = "hostname where triage party will reside"
 }
 
+variable "triage_namespace" {
+  type        = string
+  default     = "triage"
+  description = "Namespace for Triage Party."
+}
+
+variable "triage_name" {
+  type        = string
+  default     = "Triage"
+  description = "Display name Triage Party shows for this site."
+}
+
+variable "triage_repos" {
+  type        = list(string)
+  default     = []
+  description = "GitHub repositories Triage Party reads, as https://github.com/org/repo URLs. Empty leaves Triage Party uninstalled."
+}
+
 variable "mc_router_enabled" {
   type        = bool
   description = <<-EOS

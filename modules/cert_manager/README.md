@@ -1,3 +1,14 @@
+# cert_manager
+
+Installs cert-manager, the Linode DNS-01 webhook, and `letsencrypt-prod`
+and `letsencrypt-staging` ClusterIssuers. The webhook authenticates with
+`linode_api_token` (the root module passes the external-dns token).
+
+`gateway_api_enabled` turns on cert-manager's Gateway API support, so a
+Gateway annotated `cert-manager.io/cluster-issuer` receives a certificate
+per HTTPS listener. The Gateway API CRDs must already exist; the root
+module applies `modules/gateway` first.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 

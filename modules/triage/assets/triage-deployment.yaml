@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: triage-party
-  namespace: triage-tinkerbell
+  namespace: ${namespace}
 spec:
   progressDeadlineSeconds: 600
   replicas: 1

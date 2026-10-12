@@ -8,6 +8,12 @@ This Terraform module provisions Linode Kubernetes Engine (LKE) with common add-
   cert-manager is configured with a Linode DNS-01 solver and issues certificates for the Gateway's HTTPS listeners.
 - Gateway API entrypoint (Envoy Gateway)
   One `Gateway` with `http/80` (redirect), one `https/443` listener per hostname, and `tcp/25565` for Minecraft — one LoadBalancer Service, one Linode NodeBalancer. Replaces ingress-nginx (unmaintained since March 2026) and the hairpin-proxy workaround it needed.
+- Cloud Firewall
+  Linode's cloud-firewall-controller keeps one Cloud Firewall on every node, including nodes added later, so NodePorts are not reachable from the internet. Enable it before turning PROXY protocol on at the Gateway.
+- Docker Hub pull credentials
+  A pull Secret in each namespace whose pods pull from Docker Hub, attached to the `default` ServiceAccount where those pods use it, so pulls are authenticated instead of anonymous and rate-limited.
+- GitHub Actions runners
+  Optional self-hosted runner scale sets (Actions Runner Controller). Each job gets a fresh pod. An optional pull-through image cache and a per-node toolchain cache keep later jobs from re-downloading the same images and tools.
 - Minecraft (itzg), mc-router, JupyterHub, Triage Party, Longhorn — optional add-ons, see `modules/`.
 
 ## Variables
@@ -103,6 +109,9 @@ terraform apply
 | <a name="input_mc_router_enabled"></a> [mc\_router\_enabled](#input\_mc\_router\_enabled) | When true, deploy `modules/mc_router` (a single LoadBalancer that routes<br/>all minecraft traffic by handshake hostname) and force every entry in<br/>`var.minecraft` to `service_type = ClusterIP`. Consolidates N per-server<br/>NodeBalancers down to one. Requires clients to keep dialing the same<br/>per-server hostnames. | `bool` | `false` | no |
 | <a name="input_mc_router_proxy_protocol"></a> [mc\_router\_proxy\_protocol](#input\_mc\_router\_proxy\_protocol) | Real client IPs at mc-router via PROXY protocol: `off`, `accept` (mc-router accepts an optional header) or `on` (Envoy's TCPRoute, or mc-router's own NodeBalancer without a Gateway, also sends it). Roll out `accept` before `on`. With the Gateway, the IPs are only real once `gateway_proxy_protocol = "on"`. The minecraft servers themselves still see mc-router's pod IP. See modules/mc\_router. | `string` | `"off"` | no |
 | <a name="input_triage_host"></a> [triage\_host](#input\_triage\_host) | hostname where triage party will reside | `string` | `""` | no |
+| <a name="input_triage_name"></a> [triage\_name](#input\_triage\_name) | Display name Triage Party shows for this site. | `string` | `"Triage"` | no |
+| <a name="input_triage_namespace"></a> [triage\_namespace](#input\_triage\_namespace) | Namespace for Triage Party. | `string` | `"triage"` | no |
+| <a name="input_triage_repos"></a> [triage\_repos](#input\_triage\_repos) | GitHub repositories Triage Party reads, as https://github.com/org/repo URLs. Empty leaves Triage Party uninstalled. | `list(string)` | `[]` | no |
 
 ## Outputs
 

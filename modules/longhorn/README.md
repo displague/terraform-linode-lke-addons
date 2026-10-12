@@ -1,3 +1,8 @@
+# longhorn
+
+Installs Longhorn into `longhorn-system` with `persistence.defaultClass`
+set to false, so it does not become the cluster's default StorageClass.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
