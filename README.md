@@ -109,6 +109,9 @@ terraform apply
 | <a name="input_mc_router_enabled"></a> [mc\_router\_enabled](#input\_mc\_router\_enabled) | When true, deploy `modules/mc_router` (a single LoadBalancer that routes<br/>all minecraft traffic by handshake hostname) and force every entry in<br/>`var.minecraft` to `service_type = ClusterIP`. Consolidates N per-server<br/>NodeBalancers down to one. Requires clients to keep dialing the same<br/>per-server hostnames. | `bool` | `false` | no |
 | <a name="input_mc_router_proxy_protocol"></a> [mc\_router\_proxy\_protocol](#input\_mc\_router\_proxy\_protocol) | Real client IPs at mc-router via PROXY protocol: `off`, `accept` (mc-router accepts an optional header) or `on` (Envoy's TCPRoute, or mc-router's own NodeBalancer without a Gateway, also sends it). Roll out `accept` before `on`. With the Gateway, the IPs are only real once `gateway_proxy_protocol = "on"`. The minecraft servers themselves still see mc-router's pod IP. See modules/mc\_router. | `string` | `"off"` | no |
 | <a name="input_triage_host"></a> [triage\_host](#input\_triage\_host) | hostname where triage party will reside | `string` | `""` | no |
+| <a name="input_triage_name"></a> [triage\_name](#input\_triage\_name) | Display name Triage Party shows for this site. | `string` | `"Triage"` | no |
+| <a name="input_triage_namespace"></a> [triage\_namespace](#input\_triage\_namespace) | Namespace for Triage Party. | `string` | `"triage"` | no |
+| <a name="input_triage_repos"></a> [triage\_repos](#input\_triage\_repos) | GitHub repositories Triage Party reads, as https://github.com/org/repo URLs. Empty leaves Triage Party uninstalled. | `list(string)` | `[]` | no |
 
 ## Outputs
 

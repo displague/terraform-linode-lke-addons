@@ -96,7 +96,7 @@ module "gateway" {
   http_routes = concat(
     var.example_host != "" ? [{ hostname = var.example_host, namespace = "gateway", service = "example", port = 80 }] : [],
     (var.jhub_hostname != "" && var.jhub_client_id != "" && var.jhub_client_secret != "") ? [{ hostname = var.jhub_hostname, namespace = "jupyterhub", service = "proxy-public", port = 80 }] : [],
-    (var.gh_token != "" && var.triage_host != "") ? [{ hostname = var.triage_host, namespace = "triage-tinkerbell", service = "triage-party", port = 8080 }] : [],
+    local.triage_enabled ? [{ hostname = var.triage_host, namespace = var.triage_namespace, service = "triage-party", port = 8080 }] : [],
     var.extra_http_routes,
   )
 
@@ -161,12 +161,22 @@ module "mc_router" {
 }
 
 module "triage" {
-  count          = (var.gh_token != "" && var.triage_host != "") ? 1 : 0
+  count          = local.triage_enabled ? 1 : 0
   depends_on     = [module.lke]
   source         = "./modules/triage"
   gh_token       = var.gh_token
   triage_host    = var.triage_host
+  namespace      = var.triage_namespace
+  name           = var.triage_name
+  repos          = var.triage_repos
   create_ingress = !var.gateway_enabled
+}
+
+check "triage_needs_repos" {
+  assert {
+    condition     = var.triage_host == "" || length(var.triage_repos) > 0
+    error_message = "triage_host is set but triage_repos is empty. Pass the GitHub repositories Triage Party should read (https://github.com/org/repo)."
+  }
 }
 
 module "jhub" {
@@ -182,12 +192,13 @@ module "jhub" {
 }
 
 locals {
+  triage_enabled    = var.gh_token != "" && var.triage_host != "" && length(var.triage_repos) > 0
   dockerhub_enabled = var.dockerhub_username != "" && var.dockerhub_token != ""
   # Namespaces with pods pulling from Docker Hub under the `default`
   # ServiceAccount; the itzg minecraft and triage images run `:latest`/Always.
   dockerhub_default_sa_namespaces = concat(
     [for m in var.minecraft : m.namespace],
-    (var.gh_token != "" && var.triage_host != "") ? ["triage-tinkerbell"] : [],
+    local.triage_enabled ? [var.triage_namespace] : [],
     var.gateway_enabled && var.example_host != "" ? ["gateway"] : [],
   )
   mc_router_namespaces = var.mc_router_enabled && length(var.minecraft) > 0 ? ["mc-router"] : []
