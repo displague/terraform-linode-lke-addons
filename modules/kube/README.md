@@ -1,3 +1,14 @@
+# kube
+
+Provisions the LKE cluster the rest of this repository installs into: one
+autoscaled node pool (`g6-standard-2` in `us-central`) and a kubeconfig
+file at `lke_config`.
+
+Control-plane ACL, `stack_type`, VPC, pool firewall, and pool disk
+encryption are opt-in (`null` leaves them alone). Stack, VPC, firewall id,
+and disk encryption apply only when the cluster or pool is created with
+them set.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 

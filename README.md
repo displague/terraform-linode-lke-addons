@@ -8,6 +8,12 @@ This Terraform module provisions Linode Kubernetes Engine (LKE) with common add-
   cert-manager is configured with a Linode DNS-01 solver and issues certificates for the Gateway's HTTPS listeners.
 - Gateway API entrypoint (Envoy Gateway)
   One `Gateway` with `http/80` (redirect), one `https/443` listener per hostname, and `tcp/25565` for Minecraft — one LoadBalancer Service, one Linode NodeBalancer. Replaces ingress-nginx (unmaintained since March 2026) and the hairpin-proxy workaround it needed.
+- Cloud Firewall
+  Linode's cloud-firewall-controller keeps one Cloud Firewall on every node, including nodes added later, so NodePorts are not reachable from the internet. Enable it before turning PROXY protocol on at the Gateway.
+- Docker Hub pull credentials
+  A pull Secret in each namespace whose pods pull from Docker Hub, attached to the `default` ServiceAccount where those pods use it, so pulls are authenticated instead of anonymous and rate-limited.
+- GitHub Actions runners
+  Optional self-hosted runner scale sets (Actions Runner Controller). Each job gets a fresh pod. An optional pull-through image cache and a per-node toolchain cache keep later jobs from re-downloading the same images and tools.
 - Minecraft (itzg), mc-router, JupyterHub, Triage Party, Longhorn — optional add-ons, see `modules/`.
 
 ## Variables

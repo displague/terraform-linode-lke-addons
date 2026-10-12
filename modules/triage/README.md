@@ -1,3 +1,13 @@
+# triage
+
+Installs [Triage Party](https://github.com/google/triage-party) from the
+bundled manifests (namespace, GitHub token Secret, Tinkerbell config,
+Deployment, and Service). `triage_host` is the public hostname.
+
+`create_ingress` also applies an Ingress for that host. Leave it false
+when `modules/gateway` publishes the host with an HTTPRoute; the root
+module does that whenever the Gateway is enabled.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 

@@ -1,3 +1,13 @@
+# external_dns
+
+Creates a Linode API token scoped to `domains:read_write` and installs
+external-dns so hostnames on the cluster get DNS records in that account.
+The chart image is `bitnamilegacy/external-dns`.
+
+`sources` defaults to `service` and `ingress`. The root module switches
+that to `gateway-httproute` and `gateway-tcproute` when the Gateway owns
+the hostnames.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
