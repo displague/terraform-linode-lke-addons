@@ -14,6 +14,8 @@ This Terraform module provisions Linode Kubernetes Engine (LKE) with common add-
   A pull Secret in each namespace whose pods pull from Docker Hub, attached to the `default` ServiceAccount where those pods use it, so pulls are authenticated instead of anonymous and rate-limited.
 - GitHub Actions runners
   Optional self-hosted runner scale sets (Actions Runner Controller). Each job gets a fresh pod. An optional pull-through image cache and a per-node toolchain cache keep later jobs from re-downloading the same images and tools.
+- Linode COSI (Container Object Storage Interface)
+  Optional `linode-cosi-driver` and upstream COSI controller with a Linode API token scoped to `object_storage:read_write` and default `BucketClass` / `BucketAccessClass` resources, so workloads can claim Object Storage buckets declaratively.
 - Minecraft (itzg), mc-router, JupyterHub, Triage Party, Longhorn — optional add-ons, see `modules/`.
 
 ## Variables
@@ -52,6 +54,7 @@ terraform apply
 | ---- | ------ | ------- |
 | <a name="module_cert_manager"></a> [cert\_manager](#module\_cert\_manager) | ./modules/cert_manager | n/a |
 | <a name="module_cloud_firewall"></a> [cloud\_firewall](#module\_cloud\_firewall) | ./modules/cloud_firewall | n/a |
+| <a name="module_cosi"></a> [cosi](#module\_cosi) | ./modules/cosi | n/a |
 | <a name="module_external_dns"></a> [external\_dns](#module\_external\_dns) | ./modules/external_dns | n/a |
 | <a name="module_gateway"></a> [gateway](#module\_gateway) | ./modules/gateway | n/a |
 | <a name="module_github_runners"></a> [github\_runners](#module\_github\_runners) | ./modules/github_runners | n/a |
@@ -68,6 +71,7 @@ terraform apply
 | Name | Type |
 | ---- | ---- |
 | [terraform_data.dockerhub_token_expiry](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
+| [terraform_data.state_moved](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 | [http_http.my_ipv4](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 | [http_http.my_ipv6](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 
@@ -81,6 +85,11 @@ terraform apply
 | <a name="input_linode_token"></a> [linode\_token](#input\_linode\_token) | Your Linode API Authentication Token. | `string` | n/a | yes |
 | <a name="input_minecraft"></a> [minecraft](#input\_minecraft) | A list of minecraft servers to deploy. Each object should have the following fields:<br/>- namespace: the namespace of the minecraft server<br/>- port: the port to run the minecraft server on<br/>- ops: a list of minecraft usernames that will receive ops<br/>- motd: the minecraft MOTD<br/>- hostname: the hostname where minecraft will run<br/>- claim: existing claim<br/>- mc\_version: (optional) itzg image `VERSION` — pin to a specific minecraft<br/>  version like "1.21.8" when restoring a world from a much older DataVersion.<br/>  Defaults to "LATEST". | <pre>list(object(<br/>    {<br/>      namespace    = string<br/>      port         = number<br/>      ops          = string<br/>      motd         = string<br/>      hostname     = string<br/>      claim        = string<br/>      mc_version   = optional(string, "LATEST")<br/>      service_type = optional(string, "LoadBalancer")<br/>    }<br/>  ))</pre> | n/a | yes |
 | <a name="input_cloud_firewall_enabled"></a> [cloud\_firewall\_enabled](#input\_cloud\_firewall\_enabled) | Install Linode's cloud-firewall-controller (modules/cloud\_firewall), which<br/>keeps every node, including future ones, attached to a Cloud Firewall that<br/>only admits the LKE control plane, the nodes and NodeBalancers. Without<br/>it, NodePorts are reachable from the internet, bypassing the<br/>NodeBalancer. Uses LKE's existing API credential; no new token. | `bool` | `false` | no |
+| <a name="input_cosi_bucket_access_classes"></a> [cosi\_bucket\_access\_classes](#input\_cosi\_bucket\_access\_classes) | Additional or overriding COSI BucketAccessClasses keyed by name (`modules/cosi`). Ignored if `cosi_enabled = false`. | <pre>map(object({<br/>    permissions              = optional(string, "read_write")<br/>    authentication_type      = optional(string, "Key")<br/>    endpoint_type            = optional(string)<br/>    endpoint_type_preference = optional(string)<br/>  }))</pre> | `{}` | no |
+| <a name="input_cosi_bucket_classes"></a> [cosi\_bucket\_classes](#input\_cosi\_bucket\_classes) | Additional or overriding COSI BucketClasses keyed by name (`modules/cosi`). Ignored if `cosi_enabled = false`. | <pre>map(object({<br/>    region                   = string<br/>    deletion_policy          = optional(string, "Delete")<br/>    acl                      = optional(string, "private")<br/>    cors                     = optional(string, "disabled")<br/>    cleanup                  = optional(string)<br/>    endpoint_type            = optional(string)<br/>    endpoint_type_preference = optional(string)<br/>    policy                   = optional(string)<br/>  }))</pre> | `{}` | no |
+| <a name="input_cosi_enabled"></a> [cosi\_enabled](#input\_cosi\_enabled) | Install the Linode COSI driver (modules/cosi): the upstream COSI CRDs and<br/>controller, a Linode API token scoped to `object_storage:read_write`, the<br/>linode-cosi-driver Helm chart, and default BucketClass / BucketAccessClass<br/>resources so workloads can claim Object Storage buckets via BucketClaim<br/>and BucketAccess. | `bool` | `false` | no |
+| <a name="input_cosi_region"></a> [cosi\_region](#input\_cosi\_region) | Default Linode Object Storage region (`cosi.linode.com/v1/region`) on the default COSI BucketClasses when `cosi_enabled = true`. | `string` | `"us-ord"` | no |
+| <a name="input_cosi_token_expiry"></a> [cosi\_token\_expiry](#input\_cosi\_token\_expiry) | Expiry date for the Linode API token used by linode-cosi-driver (RFC3339 format). Defaults to `external_dns_token_expiry` when `null`. | `string` | `null` | no |
 | <a name="input_dockerhub_token"></a> [dockerhub\_token](#input\_dockerhub\_token) | Docker Hub personal access token (read-only on public repositories is enough). Used with dockerhub\_username. | `string` | `""` | no |
 | <a name="input_dockerhub_token_expiry"></a> [dockerhub\_token\_expiry](#input\_dockerhub\_token\_expiry) | When dockerhub\_token expires, RFC3339 (e.g. 2027-10-09T00:00:00Z). Plans fail once it has passed and warn in the 30 days before. Empty skips the check. | `string` | `""` | no |
 | <a name="input_dockerhub_username"></a> [dockerhub\_username](#input\_dockerhub\_username) | Docker Hub username for authenticated image pulls. Empty pulls anonymously (rate-limited per IP). | `string` | `""` | no |

@@ -130,6 +130,17 @@ module "longhorn" {
   source     = "./modules/longhorn"
 }
 
+module "cosi" {
+  count                 = var.cosi_enabled ? 1 : 0
+  depends_on            = [module.lke]
+  source                = "./modules/cosi"
+  token_expiry          = coalesce(var.cosi_token_expiry, var.external_dns_token_expiry)
+  region                = var.cosi_region
+  bucket_classes        = var.cosi_bucket_classes
+  bucket_access_classes = var.cosi_bucket_access_classes
+  image_pull_secrets    = local.dockerhub_enabled ? ["dockerhub"] : []
+}
+
 module "minecraft" {
   count        = length(var.minecraft)
   depends_on   = [module.lke, module.longhorn]
@@ -201,6 +212,7 @@ locals {
     local.triage_enabled ? [var.triage_namespace] : [],
     var.gateway_enabled && var.example_host != "" ? ["gateway"] : [],
   )
+  cosi_namespaces      = var.cosi_enabled ? ["linode-cosi-driver"] : []
   mc_router_namespaces = var.mc_router_enabled && length(var.minecraft) > 0 ? ["mc-router"] : []
   # Runner pods use the chart's own ServiceAccount; the Secret reaches them
   # through the scale set's pod template (image_pull_secrets).
@@ -227,11 +239,11 @@ module "github_runners" {
 
 module "registry_auth" {
   count      = local.dockerhub_enabled ? 1 : 0
-  depends_on = [module.minecraft, module.mc_router, module.triage, module.gateway, module.github_runners]
+  depends_on = [module.cosi, module.minecraft, module.mc_router, module.triage, module.gateway, module.github_runners]
   source     = "./modules/registry_auth"
   username   = var.dockerhub_username
   token      = var.dockerhub_token
-  namespaces = concat(local.dockerhub_default_sa_namespaces, local.mc_router_namespaces, local.github_runners_namespaces)
+  namespaces = concat(local.dockerhub_default_sa_namespaces, local.cosi_namespaces, local.mc_router_namespaces, local.github_runners_namespaces)
   # mc-router runs under its chart's own ServiceAccount; it gets the Secret
   # through the chart's imagePullSecrets value instead.
   default_service_account_namespaces = local.dockerhub_default_sa_namespaces

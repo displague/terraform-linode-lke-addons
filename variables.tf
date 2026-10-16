@@ -39,6 +39,56 @@ variable "longhorn_enabled" {
   description = "Whether Longhorn should be installed"
 }
 
+variable "cosi_enabled" {
+  type        = bool
+  default     = false
+  description = <<-EOS
+    Install the Linode COSI driver (modules/cosi): the upstream COSI CRDs and
+    controller, a Linode API token scoped to `object_storage:read_write`, the
+    linode-cosi-driver Helm chart, and default BucketClass / BucketAccessClass
+    resources so workloads can claim Object Storage buckets via BucketClaim
+    and BucketAccess.
+  EOS
+}
+
+variable "cosi_token_expiry" {
+  type        = string
+  default     = null
+  description = "Expiry date for the Linode API token used by linode-cosi-driver (RFC3339 format). Defaults to `external_dns_token_expiry` when `null`."
+}
+
+variable "cosi_region" {
+  type        = string
+  default     = "us-ord"
+  description = "Default Linode Object Storage region (`cosi.linode.com/v1/region`) on the default COSI BucketClasses when `cosi_enabled = true`."
+}
+
+variable "cosi_bucket_classes" {
+  type = map(object({
+    region                   = string
+    deletion_policy          = optional(string, "Delete")
+    acl                      = optional(string, "private")
+    cors                     = optional(string, "disabled")
+    cleanup                  = optional(string)
+    endpoint_type            = optional(string)
+    endpoint_type_preference = optional(string)
+    policy                   = optional(string)
+  }))
+  default     = {}
+  description = "Additional or overriding COSI BucketClasses keyed by name (`modules/cosi`). Ignored if `cosi_enabled = false`."
+}
+
+variable "cosi_bucket_access_classes" {
+  type = map(object({
+    permissions              = optional(string, "read_write")
+    authentication_type      = optional(string, "Key")
+    endpoint_type            = optional(string)
+    endpoint_type_preference = optional(string)
+  }))
+  default     = {}
+  description = "Additional or overriding COSI BucketAccessClasses keyed by name (`modules/cosi`). Ignored if `cosi_enabled = false`."
+}
+
 variable "gh_token" {
   type        = string
   default     = ""
