@@ -4,6 +4,13 @@ Installs the [Linode COSI driver](https://github.com/linode/linode-cosi-driver)
 (Container Object Storage Interface) Helm chart with a Linode personal access
 token scoped to `object_storage:read_write`.
 
+The chart installs only the driver. BucketClaims and BucketAccesses do nothing
+until the cluster also has the COSI CRDs and controller
+([container-object-storage-interface](https://github.com/kubernetes-sigs/container-object-storage-interface),
+matching the chart's sidecar version, `v0.2.2` for chart `0.9.5`) and a
+`BucketClass` / `BucketAccessClass` naming this driver. This module creates none
+of those.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
