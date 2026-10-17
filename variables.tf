@@ -39,6 +39,21 @@ variable "longhorn_enabled" {
   description = "Whether Longhorn should be installed"
 }
 
+variable "cosi_enabled" {
+  type        = bool
+  default     = false
+  description = <<-EOS
+    Install the Linode COSI driver (modules/cosi): a Linode API token scoped to
+    `object_storage:read_write` and the linode-cosi-driver Helm chart.
+  EOS
+}
+
+variable "cosi_token_expiry" {
+  type        = string
+  default     = null
+  description = "Expiry date for the Linode API token used by linode-cosi-driver (RFC3339 format). Defaults to `external_dns_token_expiry` when `null`."
+}
+
 variable "gh_token" {
   type        = string
   default     = ""
