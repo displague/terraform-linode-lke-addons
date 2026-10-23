@@ -69,3 +69,29 @@ variable "image_pull_secrets" {
   default     = []
   description = "Names of pull Secrets in the release namespace (e.g. Docker Hub credentials), passed to the chart's imagePullSecrets."
 }
+
+variable "image_tag" {
+  type        = string
+  default     = "1.49.0"
+  description = "itzg/mc-router image tag. The chart defaults to `latest` with pullPolicy Always, so every restart could change the router; pinned instead. Autoscale needs 1.48.0 or later (only player logins reset the idle timer; status pings don't keep a server awake)."
+}
+
+variable "autoscale" {
+  type = object({
+    enabled = optional(bool, false)
+    # Namespaces whose StatefulSet mc-router may scale (Role per namespace).
+    namespaces   = optional(list(string), [])
+    down_after   = optional(string, "10m")
+    asleep_motd  = optional(string, "Asleep - join to wake it, then join again in ~2 min")
+    loading_motd = optional(string, "Waking up - join again in a minute")
+  })
+  default     = {}
+  description = <<-EOS
+    Scale idle minecraft servers to zero. When `enabled`, mc-router discovers
+    its routes from Service annotations (`mc-router.itzg.me/externalServerName`,
+    set by modules/minecraft `mc_router_discovery`) instead of `mappings`,
+    wakes a StatefulSet-backed server on a player login and scales it back to 0
+    `down_after` the last player leaves. `namespaces` lists the namespaces whose
+    StatefulSet it may scale; servers elsewhere are routed but never scaled.
+  EOS
+}

@@ -35,6 +35,48 @@ minecraft servers still log mc-router's pod IP: vanilla can't read PROXY, so
 mc-router doesn't forward it. Roll back in reverse order (`on` → `accept` →
 `off`).
 
+### Scale to zero
+
+With `mc_router_autoscale = true` at the root, mc-router stops idle servers and
+starts them again on a player login, so a server only holds its CPU and memory
+requests while someone plays.
+
+- **Routing** moves from the static `mappings` to Service annotations
+  (`mc-router.itzg.me/externalServerName = <hostname>`, set by
+  modules/minecraft). Hostnames don't change.
+- **Opt-in per server** with `scale_to_zero = true` on its `var.minecraft`
+  entry. The chart then runs it as a StatefulSet (`workloadAsStatefulSet`,
+  `strategyType = RollingUpdate`) on the same PVC (`existingClaim`).
+  mc-router can only scale StatefulSets. Servers without it keep their
+  Deployment and carry `autoScaleUp/Down: "false"`: routed, never scaled.
+- **RBAC** (`rbac.tf`): the chart keeps its services-only ClusterRole. The
+  module adds watch/list on StatefulSets cluster-wide, which mc-router's
+  all-namespace informer needs. It also adds a Role with `patch` and
+  `statefulsets/scale get` in each scale-to-zero namespace. The chart's own
+  autoscale flag would instead allow update/patch on every StatefulSet in the
+  cluster, so the module leaves it unset and enables autoscale through env.
+- **Asleep**, the server list shows `asleep_motd`. A join starts the server.
+  Block-volume attach plus JVM start takes longer than the Java client's 30 s
+  timeout, so the first join times out and the second one works. A server
+  scales back to 0 `down_after` (10m) after the last player leaves. Status
+  pings don't keep it awake (mc-router >= 1.48.0).
+- **Keep one awake** (maintenance): annotate its Service
+  `mc-router.itzg.me/autoScaleDown=false`, then
+  `kubectl -n <ns> scale sts minecraft --replicas=1`. Remove the annotation
+  afterwards. A `terraform apply` that changes the release also sets replicas
+  back to 1, and mc-router puts it to sleep again once it's idle.
+- **Name clash:** mc-router keys its Service → StatefulSet lookup by Service
+  name alone. Every server here is Service `minecraft` + StatefulSet
+  `minecraft`, so the clash is harmless. Deleting one server's StatefulSet
+  drops the shared entry, though. Restart mc-router afterwards.
+
+**Switching a server** deletes its Deployment and creates the StatefulSet in
+one helm upgrade. Helm creates the new pod before it deletes the old one, and
+a ReadWriteOnce volume can be mounted twice on the same node. Scale the
+Deployment to 0 first:
+`kubectl -n <ns> scale deploy minecraft --replicas=0`. Then apply. Switch one
+server per apply.
+
 ### Cutover recipe
 
 Assumes you're moving from three per-server LoadBalancers on `mc1.example.com`,
@@ -79,12 +121,14 @@ alongside the HTTP(S) listeners. One LoadBalancer Service, one NB.
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.6 |
 | <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 3.0.0 |
+| <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 2.38.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | >= 3.0.0 |
+| <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | >= 2.38.0 |
 
 ## Modules
 
@@ -95,15 +139,21 @@ No modules.
 | Name | Type |
 | ---- | ---- |
 | [helm_release.mc_router](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
+| [kubernetes_cluster_role_binding_v1.statefulset_reader](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/cluster_role_binding_v1) | resource |
+| [kubernetes_cluster_role_v1.statefulset_reader](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/cluster_role_v1) | resource |
+| [kubernetes_role_binding_v1.scaler](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/role_binding_v1) | resource |
+| [kubernetes_role_v1.scaler](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/role_v1) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_mappings"></a> [mappings](#input\_mappings) | Mapping list turned into `minecraftRouter.mappings` on the itzg/mc-router<br/>chart. Each entry routes an inbound Minecraft handshake for the given<br/>hostname to the matching in-cluster Service. | <pre>list(object({<br/>    hostname = string # external hostname minecraft clients dial (e.g. "mc1.example.com")<br/>    target   = string # k8s Service address:port (e.g. "minecraft.minecraft.svc.cluster.local:25565")<br/>  }))</pre> | n/a | yes |
+| <a name="input_autoscale"></a> [autoscale](#input\_autoscale) | Scale idle minecraft servers to zero. When `enabled`, mc-router discovers<br/>its routes from Service annotations (`mc-router.itzg.me/externalServerName`,<br/>set by modules/minecraft `mc_router_discovery`) instead of `mappings`,<br/>wakes a StatefulSet-backed server on a player login and scales it back to 0<br/>`down_after` the last player leaves. `namespaces` lists the namespaces whose<br/>StatefulSet it may scale; servers elsewhere are routed but never scaled. | <pre>object({<br/>    enabled = optional(bool, false)<br/>    # Namespaces whose StatefulSet mc-router may scale (Role per namespace).<br/>    namespaces   = optional(list(string), [])<br/>    down_after   = optional(string, "10m")<br/>    asleep_motd  = optional(string, "Asleep - join to wake it, then join again in ~2 min")<br/>    loading_motd = optional(string, "Waking up - join again in a minute")<br/>  })</pre> | `{}` | no |
 | <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | itzg/mc-router chart version. Pinned so upstream changes don't silently roll out. | `string` | `"1.5.0"` | no |
 | <a name="input_external_port"></a> [external\_port](#input\_external\_port) | External Minecraft port exposed by the mc-router LoadBalancer Service. | `number` | `25565` | no |
 | <a name="input_image_pull_secrets"></a> [image\_pull\_secrets](#input\_image\_pull\_secrets) | Names of pull Secrets in the release namespace (e.g. Docker Hub credentials), passed to the chart's imagePullSecrets. | `list(string)` | `[]` | no |
+| <a name="input_image_tag"></a> [image\_tag](#input\_image\_tag) | itzg/mc-router image tag. The chart defaults to `latest` with pullPolicy Always, so every restart could change the router; pinned instead. Autoscale needs 1.48.0 or later (only player logins reset the idle timer; status pings don't keep a server awake). | `string` | `"1.49.0"` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Kubernetes namespace to install mc-router into. | `string` | `"mc-router"` | no |
 | <a name="input_proxy_protocol"></a> [proxy\_protocol](#input\_proxy\_protocol) | Real client IPs at mc-router via PROXY protocol: `off`, `accept` or `on`.<br/>`accept` makes mc-router accept an optional PROXY header<br/>(RECEIVE\_PROXY\_PROTOCOL), so its connection logs and allow/deny lists see<br/>the client's address. `on` also has the NodeBalancer send PROXY v2 when<br/>`service_type = "LoadBalancer"`; behind a Gateway the sender is Envoy<br/>(modules/gateway `tcp_routes[*].proxy_protocol`). Roll out `accept` before<br/>`on`. mc-router never forwards the header to the minecraft servers, which<br/>still see mc-router's pod IP (vanilla servers can't read PROXY). | `string` | `"off"` | no |
 | <a name="input_service_type"></a> [service\_type](#input\_service\_type) | Service type for mc-router. `LoadBalancer` = its own NodeBalancer (external-dns hostnames published from the Service). `ClusterIP` = sit behind a Gateway API TCPRoute (modules/gateway), which then owns the hostnames. | `string` | `"LoadBalancer"` | no |
