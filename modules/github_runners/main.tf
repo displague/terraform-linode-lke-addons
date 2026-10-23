@@ -21,9 +21,20 @@ resource "kubernetes_namespace_v1" "controller" {
   }
 }
 
+# Pod Security Admission labels. `enforce` can't be `baseline` while the dind
+# sidecar is privileged (and the toolchain cache is a hostPath), so by default
+# violations are only warned about and audited.
 resource "kubernetes_namespace_v1" "runners" {
   metadata {
     name = var.runners_namespace
+    labels = merge([for mode, level in {
+      enforce = var.pod_security.enforce
+      warn    = var.pod_security.warn
+      audit   = var.pod_security.audit
+      } : {
+      "pod-security.kubernetes.io/${mode}"         = level
+      "pod-security.kubernetes.io/${mode}-version" = "latest"
+    } if level != null]...)
   }
 }
 
@@ -77,8 +88,16 @@ resource "helm_release" "scale_set" {
       name      = "arc-gha-rs-controller"
     }
     template = {
+      # The network policy below selects runner pods by these labels.
+      metadata = { labels = local.runner_labels }
       spec = merge(
-        { imagePullSecrets = [for s in var.image_pull_secrets : { name = s }] },
+        {
+          imagePullSecrets = [for s in var.image_pull_secrets : { name = s }]
+          # In dind mode the runner talks to GitHub, never the Kubernetes API
+          # (its registration arrives as an env var from a Secret), so it has
+          # no use for a ServiceAccount token.
+          automountServiceAccountToken = var.automount_service_account_token
+        },
         merge([for _ in local.tmpl_on : {
           initContainers = concat([for _ in local.tool_on : {
             # hostPath directories are created root-owned; hand them to the runner user.
@@ -286,6 +305,129 @@ resource "kubernetes_service_v1" "image_cache" {
     port {
       port        = 5000
       target_port = 5000
+    }
+  }
+}
+
+# ---------- network isolation ----------
+# Runner pods may reach cluster DNS, the image cache and the public internet,
+# but not private or link-local addresses: other pods, Services, nodes'
+# private interfaces or cloud metadata. Jobs and their service containers run
+# in the dind sidecar, NATed onto the pod's own network namespace, so the
+# pod's policy covers them too. Nothing connects into a runner pod: runners
+# poll GitHub, and the ARC controller and listeners use only the Kubernetes
+# and GitHub APIs.
+locals {
+  runner_labels  = { "app.kubernetes.io/component" = "runner", "app.kubernetes.io/part-of" = "github-runners" }
+  netpol_enabled = var.network_policy.enabled
+  egress_except  = concat(var.network_policy.private_cidrs, var.network_policy.blocked_cidrs)
+  dns_namespace  = { "kubernetes.io/metadata.name" = "kube-system" }
+}
+
+resource "kubernetes_network_policy_v1" "runners" {
+  count = local.netpol_enabled ? 1 : 0
+  metadata {
+    name      = "github-runners"
+    namespace = kubernetes_namespace_v1.runners.metadata[0].name
+  }
+  spec {
+    pod_selector {
+      match_labels = local.runner_labels
+    }
+    # No ingress rules: all inbound traffic is denied.
+    policy_types = ["Ingress", "Egress"]
+
+    egress {
+      to {
+        namespace_selector {
+          match_labels = local.dns_namespace
+        }
+      }
+      ports {
+        port     = "53"
+        protocol = "UDP"
+      }
+      ports {
+        port     = "53"
+        protocol = "TCP"
+      }
+    }
+
+    dynamic "egress" {
+      for_each = local.cache_enabled ? [1] : []
+      content {
+        to {
+          pod_selector {
+            match_labels = { app = "registry-cache" }
+          }
+        }
+        ports {
+          port     = "5000"
+          protocol = "TCP"
+        }
+      }
+    }
+
+    egress {
+      to {
+        ip_block {
+          cidr   = "0.0.0.0/0"
+          except = local.egress_except
+        }
+      }
+    }
+  }
+}
+
+# The cache takes pulls from runner pods only, and reaches out only to DNS and
+# the public internet (Docker Hub).
+resource "kubernetes_network_policy_v1" "image_cache" {
+  count = local.netpol_enabled && local.cache_enabled ? 1 : 0
+  metadata {
+    name      = "registry-cache"
+    namespace = kubernetes_namespace_v1.runners.metadata[0].name
+  }
+  spec {
+    pod_selector {
+      match_labels = { app = "registry-cache" }
+    }
+    policy_types = ["Ingress", "Egress"]
+
+    ingress {
+      from {
+        pod_selector {
+          match_labels = local.runner_labels
+        }
+      }
+      ports {
+        port     = "5000"
+        protocol = "TCP"
+      }
+    }
+
+    egress {
+      to {
+        namespace_selector {
+          match_labels = local.dns_namespace
+        }
+      }
+      ports {
+        port     = "53"
+        protocol = "UDP"
+      }
+      ports {
+        port     = "53"
+        protocol = "TCP"
+      }
+    }
+
+    egress {
+      to {
+        ip_block {
+          cidr   = "0.0.0.0/0"
+          except = local.egress_except
+        }
+      }
     }
   }
 }
