@@ -126,9 +126,18 @@ variable "network_policy" {
     outbound they reach cluster DNS, the image cache and any IPv4 address
     outside `private_cidrs` and `blocked_cidrs`. `private_cidrs` (RFC 1918,
     CGNAT, link-local) covers pod, Service and private node networks and
-    cloud metadata; add anything that answers on a public address, such as
-    the nodes' public IPs or the Kubernetes API endpoint, to `blocked_cidrs`.
+    cloud metadata. Public addresses stay reachable: the Kubernetes API is
+    denied separately (`calico_policies`), and the nodes' public addresses,
+    which change with autoscaling and upgrades, are left to a cloud
+    firewall (see the cloud_firewall module). `blocked_cidrs` is for other
+    fixed public addresses jobs must not reach.
   EOS
+}
+
+variable "calico_policies" {
+  type        = bool
+  default     = true
+  description = "Add a Calico NetworkPolicy (crd.projectcalico.org/v1) denying runner pods egress to the Kubernetes API server, matched by the `kubernetes` Service so its address needn't be known. Needs Calico (LKE's CNI) and `network_policy.enabled`; set false on other CNIs."
 }
 
 variable "automount_service_account_token" {

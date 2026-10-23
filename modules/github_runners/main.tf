@@ -379,6 +379,35 @@ resource "kubernetes_network_policy_v1" "runners" {
   }
 }
 
+# The Kubernetes API endpoint is a public address (that can change), so the
+# ipBlock above can't exclude it. Calico can: a Service match covers the
+# `kubernetes` Service's ClusterIP and its endpoints, the control plane's
+# real address. Order 100 runs before Kubernetes NetworkPolicies (1000);
+# other traffic falls through to them. Only created with the policy above:
+# alone, a Calico policy with no allow rule would end the tier in a deny.
+# A `default.` name is how Calico stores default-tier policies, and is
+# still a plain name on releases without tiers.
+resource "kubectl_manifest" "runners_deny_apiserver" {
+  count = local.netpol_enabled && var.calico_policies ? 1 : 0
+  yaml_body = yamlencode({
+    apiVersion = "crd.projectcalico.org/v1"
+    kind       = "NetworkPolicy"
+    metadata = {
+      name      = "default.github-runners-deny-apiserver"
+      namespace = kubernetes_namespace_v1.runners.metadata[0].name
+    }
+    spec = {
+      order    = 100
+      selector = join(" && ", [for k, v in local.runner_labels : "${k} == '${v}'"])
+      types    = ["Egress"]
+      egress = [{
+        action      = "Deny"
+        destination = { services = { name = "kubernetes", namespace = "default" } }
+      }]
+    }
+  })
+}
+
 # The cache takes pulls from runner pods only, and reaches out only to DNS and
 # the public internet (Docker Hub).
 resource "kubernetes_network_policy_v1" "image_cache" {
