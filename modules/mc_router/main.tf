@@ -48,6 +48,20 @@ resource "helm_release" "mc_router" {
         } : {})
       }
     }
+    # Meets the restricted Pod Security Standard (#79). The image already runs
+    # as UID 65532 and needs no capabilities: both ports are above 1024 and it
+    # writes nothing to disk.
+    podSecurityContext = {
+      runAsNonRoot   = true
+      runAsUser      = 65532
+      runAsGroup     = 65532
+      seccompProfile = { type = "RuntimeDefault" }
+    }
+    securityContext = {
+      allowPrivilegeEscalation = false
+      readOnlyRootFilesystem   = true
+      capabilities             = { drop = ["ALL"] }
+    }
     image = {
       tag = var.image_tag
       # A pinned tag doesn't need re-pulling on every restart.
