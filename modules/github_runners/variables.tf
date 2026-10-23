@@ -106,3 +106,57 @@ variable "toolchain_cache" {
     it only for trusted (private) repositories.
   EOS
 }
+
+variable "network_policy" {
+  type = object({
+    enabled = optional(bool, true)
+    private_cidrs = optional(list(string), [
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+      "100.64.0.0/10",
+      "169.254.0.0/16",
+    ])
+    blocked_cidrs = optional(list(string), [])
+  })
+  default     = {}
+  description = <<-EOS
+    NetworkPolicies for the runners namespace (the cluster's CNI must
+    enforce them, as Calico does). Runner pods accept no inbound traffic;
+    outbound they reach cluster DNS, the image cache and any IPv4 address
+    outside `private_cidrs` and `blocked_cidrs`. `private_cidrs` (RFC 1918,
+    CGNAT, link-local) covers pod, Service and private node networks and
+    cloud metadata. Public addresses stay reachable: the Kubernetes API is
+    denied separately (`calico_policies`), and the nodes' public addresses,
+    which change with autoscaling and upgrades, are left to a cloud
+    firewall (see the cloud_firewall module). `blocked_cidrs` is for other
+    fixed public addresses jobs must not reach.
+  EOS
+}
+
+variable "calico_policies" {
+  type        = bool
+  default     = true
+  description = "Add a Calico NetworkPolicy (crd.projectcalico.org/v1) denying runner pods egress to the Kubernetes API server, matched by the `kubernetes` Service so its address needn't be known. Needs Calico (LKE's CNI) and `network_policy.enabled`; set false on other CNIs."
+}
+
+variable "automount_service_account_token" {
+  type        = bool
+  default     = false
+  description = "Mount a ServiceAccount token into runner pods. Runners in dind mode don't use the Kubernetes API, so this stays off unless a job needs one."
+}
+
+variable "pod_security" {
+  type = object({
+    enforce = optional(string)
+    warn    = optional(string, "baseline")
+    audit   = optional(string, "baseline")
+  })
+  default     = {}
+  description = <<-EOS
+    Pod Security Admission levels (`privileged`, `baseline`, `restricted`)
+    for the runners namespace; `null` leaves a mode unset. The dind sidecar
+    is privileged, so `enforce` can be at most `privileged` here; enforcing
+    `baseline` needs runners without dind (`containerMode` kubernetes).
+  EOS
+}
