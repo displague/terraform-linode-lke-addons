@@ -72,3 +72,15 @@ variable "create_ingress" {
   default     = true
   description = "Render the chart's own Ingress for `hostname`. Leave false (the default via the root module) when the host is routed by modules/gateway (an HTTPRoute); only useful with a bring-your-own ingress controller."
 }
+
+variable "user_scheduler" {
+  type        = bool
+  default     = false
+  description = "Run the chart's user scheduler (two always-on pods) to pack single-user servers onto fewer nodes. Worth it only with many concurrent users and a node autoscaler."
+}
+
+variable "continuous_image_puller" {
+  type        = bool
+  default     = false
+  description = "Keep an image-puller pod on every node so new nodes have the single-user image before anyone starts a server. Off: the first start on a node waits for the image pull."
+}
