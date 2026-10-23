@@ -76,6 +76,15 @@ resource "helm_release" "jupyterhub" {
         - hosts:
           - ${var.hostname}
           secretName: ${var.hostname}-crt
+    # Idle single-user servers are culled by the chart; these trim what
+    # runs all the time. The user scheduler only packs pods well with many
+    # concurrent users, and the continuous puller keeps a pod on every node.
+    scheduling:
+      userScheduler:
+        enabled: ${var.user_scheduler}
+    prePuller:
+      continuous:
+        enabled: ${var.continuous_image_puller}
     hub:
       db:
         type: other
