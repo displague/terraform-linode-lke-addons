@@ -106,14 +106,15 @@ variable "mc_router_enabled" {
 variable "minecraft" {
   type = list(object(
     {
-      namespace    = string
-      port         = number
-      ops          = string
-      motd         = string
-      hostname     = string
-      claim        = string
-      mc_version   = optional(string, "LATEST")
-      service_type = optional(string, "LoadBalancer")
+      namespace     = string
+      port          = number
+      ops           = string
+      motd          = string
+      hostname      = string
+      claim         = string
+      mc_version    = optional(string, "LATEST")
+      service_type  = optional(string, "LoadBalancer")
+      scale_to_zero = optional(bool, false)
     }
   ))
   description = <<-EOT
@@ -127,6 +128,10 @@ A list of minecraft servers to deploy. Each object should have the following fie
 - mc_version: (optional) itzg image `VERSION` — pin to a specific minecraft
   version like "1.21.8" when restoring a world from a much older DataVersion.
   Defaults to "LATEST".
+- scale_to_zero: (optional) run the server as a StatefulSet on the same PVC
+  that mc-router wakes on a player login and scales to 0 when idle. Needs
+  `mc_router_enabled` and `mc_router_autoscale`. Switch one server at a time
+  (modules/mc_router/README.md).
 EOT
 }
 
@@ -228,6 +233,18 @@ variable "gateway_proxy_protocol" {
     condition     = contains(["off", "accept", "on"], var.gateway_proxy_protocol)
     error_message = "gateway_proxy_protocol must be off, accept or on."
   }
+}
+
+variable "mc_router_autoscale" {
+  type        = bool
+  default     = false
+  description = <<-EOS
+    Let mc-router scale minecraft servers to zero. mc-router then routes from
+    Service annotations instead of a static mapping (every server keeps its
+    hostname) and may scale the servers whose `var.minecraft` entry sets
+    `scale_to_zero`; the others are routed but never scaled. Needs
+    `mc_router_enabled`. See modules/mc_router.
+  EOS
 }
 
 variable "mc_router_proxy_protocol" {

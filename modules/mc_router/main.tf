@@ -48,21 +48,51 @@ resource "helm_release" "mc_router" {
         } : {})
       }
     }
-    minecraftRouter = {
-      mappings = [
+    image = {
+      tag = var.image_tag
+      # A pinned tag doesn't need re-pulling on every restart.
+      pullPolicy = "IfNotPresent"
+    }
+    minecraftRouter = merge({
+      # With autoscale, routes come from Service annotations (see rbac.tf and
+      # modules/minecraft `mc_router_discovery`): a static mapping has no
+      # StatefulSet to wake.
+      mappings = var.autoscale.enabled ? [] : [
         for m in var.mappings : {
           externalHostname = m.hostname
           host             = split(":", m.target)[0]
           port             = tonumber(split(":", m.target)[1])
         }
       ]
-    }
-    }, var.proxy_protocol == "off" ? {} : {
-    # The header is optional (mc-router's listener policy is USE), so
-    # connections that skip the NodeBalancer / Envoy keep working without it.
+      }, var.autoscale.enabled ? {
+      # null rather than true: true makes the chart's own ClusterRole grant
+      # update/patch on every StatefulSet in the cluster, and false still
+      # renders AUTO_SCALE_UP=false. null (Helm drops the key) renders
+      # neither; extraEnv below turns autoscale on and rbac.tf grants only
+      # what it needs. (The chart's schema rejects "".)
+      autoScale = {
+        up   = { enabled = null }
+        down = { enabled = null }
+      }
+    } : {})
     extraEnv = merge(
-      { RECEIVE_PROXY_PROTOCOL = "true" },
-      length(var.trusted_proxies) == 0 ? {} : { TRUSTED_PROXIES = join(",", var.trusted_proxies) },
+      # The header is optional (mc-router's listener policy is USE), so
+      # connections that skip the NodeBalancer / Envoy keep working without it.
+      var.proxy_protocol == "off" ? {} : { RECEIVE_PROXY_PROTOCOL = "true" },
+      var.proxy_protocol == "off" || length(var.trusted_proxies) == 0 ? {} : { TRUSTED_PROXIES = join(",", var.trusted_proxies) },
+      var.autoscale.enabled ? {
+        AUTO_SCALE_UP         = "true"
+        AUTO_SCALE_DOWN       = "true"
+        AUTO_SCALE_DOWN_AFTER = var.autoscale.down_after
+        # Asleep: the server list shows this instead of timing out. A join
+        # wakes the server, but volume attach + JVM start outlasts the Java
+        # client's 30 s connect timeout: the first join times out, the next works.
+        AUTO_SCALE_ASLEEP_MOTD  = var.autoscale.asleep_motd
+        AUTO_SCALE_LOADING_MOTD = var.autoscale.loading_motd
+      } : {},
     )
   }))]
+
+  # The Roles exist before the router starts scaling.
+  depends_on = [kubernetes_cluster_role_binding_v1.statefulset_reader, kubernetes_role_binding_v1.scaler]
 }

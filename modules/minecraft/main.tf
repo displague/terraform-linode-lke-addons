@@ -60,10 +60,30 @@ resource "helm_release" "minecraft" {
     # Only annotate the Service for external-dns when we're the ones owning
     # the public DNS name (i.e. the LoadBalancer case). When routed via
     # mc-router, the router's own LB Service owns the DNS records.
-    serviceAnnotations = var.service_type == "LoadBalancer" ? {
+    serviceAnnotations = merge(var.service_type == "LoadBalancer" ? {
       "external-dns.alpha.kubernetes.io/hostname" = var.hostname
       "external-dns.alpha.kubernetes.io/ttl"      = "180"
-    } : {}
+      } : {}, var.mc_router_discovery ? merge({
+        # mc-router (with autoscale) finds its routes from Service
+        # annotations instead of a static MAPPING.
+        "mc-router.itzg.me/externalServerName" = var.hostname
+        }, var.scale_to_zero ? {} : {
+        # Still a Deployment: route only, never scale. mc-router keys its
+        # StatefulSet lookup by Service name alone (not namespace), so once
+        # another namespace has a StatefulSet "minecraft" it would try to
+        # scale one here, fail, and drop the join.
+        "mc-router.itzg.me/autoScaleUp"   = "false"
+        "mc-router.itzg.me/autoScaleDown" = "false"
+    }) : {})
+    # mc-router can only scale StatefulSets. The pod keeps mounting the
+    # module's PVC (existingClaim below), so no volumeClaimTemplate and no
+    # new volume. `Recreate` is Deployment-only; a 1-replica StatefulSet
+    # rolls delete-then-create under RollingUpdate. A helm upgrade puts
+    # replicas back to 1; mc-router scales it down again when idle.
+    # (Set unconditionally: a `cond ? {...} : {}` here would turn the bool
+    # into the string "true", which the chart's ternary rejects.)
+    workloadAsStatefulSet = var.scale_to_zero
+    strategyType          = var.scale_to_zero ? "RollingUpdate" : "Recreate"
   })]
 
   set = [

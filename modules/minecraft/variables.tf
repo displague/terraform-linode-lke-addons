@@ -93,3 +93,26 @@ variable "service_type" {
     error_message = "service_type must be one of LoadBalancer, ClusterIP, NodePort."
   }
 }
+
+variable "mc_router_discovery" {
+  type        = bool
+  description = <<-EOS
+    Annotate the Service for mc-router's Kubernetes discovery
+    (`mc-router.itzg.me/externalServerName = hostname`). Set when mc-router
+    runs with autoscale, which routes from annotations instead of a static
+    mapping.
+  EOS
+  default     = false
+}
+
+variable "scale_to_zero" {
+  type        = bool
+  description = <<-EOS
+    Run the server as a StatefulSet (same PVC) that mc-router scales to 0
+    when idle and back to 1 on a player login. Needs `mc_router_discovery`.
+    Switching an existing server deletes its Deployment and creates the
+    StatefulSet: scale the Deployment to 0 first so the old and new pods never
+    share the ReadWriteOnce volume. See modules/mc_router/README.md.
+  EOS
+  default     = false
+}

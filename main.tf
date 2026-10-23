@@ -149,6 +149,10 @@ module "minecraft" {
   claim        = var.minecraft[count.index].claim
   mc_version   = try(var.minecraft[count.index].mc_version, "LATEST")
   service_type = var.mc_router_enabled ? "ClusterIP" : try(var.minecraft[count.index].service_type, "LoadBalancer")
+  # Scale to zero: mc-router routes from Service annotations and scales the
+  # servers that opted in. See modules/mc_router/README.md.
+  mc_router_discovery = local.mc_router_autoscale
+  scale_to_zero       = local.mc_router_autoscale && var.minecraft[count.index].scale_to_zero
 }
 
 module "mc_router" {
@@ -160,12 +164,23 @@ module "mc_router" {
   # A name only (no dependency): the Secret is created after the release,
   # in the namespace the release creates.
   image_pull_secrets = local.dockerhub_enabled ? ["dockerhub"] : []
+  autoscale = {
+    enabled    = local.mc_router_autoscale
+    namespaces = [for m in var.minecraft : m.namespace if m.scale_to_zero]
+  }
   mappings = [
     for m in var.minecraft : {
       hostname = m.hostname
       target   = "minecraft.${m.namespace}.svc.cluster.local:${m.port}"
     }
   ]
+}
+
+check "scale_to_zero_needs_mc_router_autoscale" {
+  assert {
+    condition     = local.mc_router_autoscale || alltrue([for m in var.minecraft : !m.scale_to_zero])
+    error_message = "A minecraft entry sets scale_to_zero, but mc_router_enabled and mc_router_autoscale aren't both true: nothing would wake it, so it stays a Deployment."
+  }
 }
 
 module "triage" {
@@ -211,6 +226,7 @@ locals {
   )
   cosi_namespaces      = var.cosi_enabled ? ["linode-cosi-driver"] : []
   mc_router_namespaces = var.mc_router_enabled && length(var.minecraft) > 0 ? ["mc-router"] : []
+  mc_router_autoscale  = var.mc_router_enabled && length(var.minecraft) > 0 && var.mc_router_autoscale
   # Runner pods use the chart's own ServiceAccount; the Secret reaches them
   # through the scale set's pod template (image_pull_secrets).
   github_runners_enabled    = length(var.github_runner_scale_sets) > 0
