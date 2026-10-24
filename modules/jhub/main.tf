@@ -54,6 +54,12 @@ resource "kubernetes_persistent_volume_claim" "hub_db" {
 
 # https://artifacthub.io/packages/helm/bitnami/external-dns
 resource "helm_release" "jupyterhub" {
+  # Parked: the hub, proxy and every chart object are uninstalled. The
+  # namespace, the hub database volume and the single-user volumes (created by
+  # the spawner, not the chart) stay, so unparking brings back the same users
+  # and notebooks. Sessions don't survive: the chart's cookie secret is
+  # regenerated, so sign in again.
+  count             = var.parked ? 0 : 1
   name              = "jupyterhub"
   repository        = "https://jupyterhub.github.io/helm-chart/"
   chart             = "jupyterhub"

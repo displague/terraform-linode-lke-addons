@@ -212,6 +212,7 @@ module "jhub" {
   gh_admin_users = var.gh_admin_users
   hub_db_volume  = var.jhub_db_volume
   create_ingress = !var.gateway_enabled
+  parked         = var.jhub_parked
 }
 
 locals {

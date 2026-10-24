@@ -141,6 +141,12 @@ variable "jhub_hostname" {
   description = "hostname for jupyter hub"
 }
 
+variable "jhub_parked" {
+  type        = bool
+  default     = false
+  description = "Park JupyterHub: uninstall the hub and proxy but keep its namespace, volumes and route (it answers an error). Set false and apply to bring it back."
+}
+
 variable "jhub_client_id" {
   type        = string
   default     = ""

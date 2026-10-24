@@ -84,3 +84,9 @@ variable "continuous_image_puller" {
   default     = false
   description = "Keep an image-puller pod on every node so new nodes have the single-user image before anyone starts a server. Off: the first start on a node waits for the image pull."
 }
+
+variable "parked" {
+  type        = bool
+  default     = false
+  description = "Uninstall the hub and proxy while keeping the namespace and every volume. For a hub used rarely: set false and apply to bring it back (a few minutes). The hostname answers an error while parked."
+}
