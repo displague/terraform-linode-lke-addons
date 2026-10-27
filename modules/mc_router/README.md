@@ -77,6 +77,19 @@ Deployment to 0 first:
 `kubectl -n <ns> scale deploy minecraft --replicas=0`. Then apply. Switch one
 server per apply.
 
+**The router restarts by itself** when the set of scale-to-zero servers
+changes. The switch updates the server's route in place, and mc-router
+starts a route's idle timer only when it creates the route, when the backend
+comes up, or after a connection closes. Without a restart the switched server
+would stay up until someone joined and left. So the router's pod template
+carries `lke-addons/scale-to-zero-checksum`, a hash of the sorted
+`autoscale.namespaces`. When that list changes, the plan shows one changed
+annotation on `helm_release.mc_router` and the router Deployment rolls after
+the server has switched. The new pod creates every route afresh and starts
+every timer. Applies that leave the list alone don't restart the router.
+Turning `autoscale` on for the first time adds the annotation, so the router
+restarts once.
+
 ### Cutover recipe
 
 Assumes you're moving from three per-server LoadBalancers on `mc1.example.com`,
@@ -149,7 +162,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_mappings"></a> [mappings](#input\_mappings) | Mapping list turned into `minecraftRouter.mappings` on the itzg/mc-router<br/>chart. Each entry routes an inbound Minecraft handshake for the given<br/>hostname to the matching in-cluster Service. | <pre>list(object({<br/>    hostname = string # external hostname minecraft clients dial (e.g. "mc1.example.com")<br/>    target   = string # k8s Service address:port (e.g. "minecraft.minecraft.svc.cluster.local:25565")<br/>  }))</pre> | n/a | yes |
-| <a name="input_autoscale"></a> [autoscale](#input\_autoscale) | Scale idle minecraft servers to zero. When `enabled`, mc-router discovers<br/>its routes from Service annotations (`mc-router.itzg.me/externalServerName`,<br/>set by modules/minecraft `mc_router_discovery`) instead of `mappings`,<br/>wakes a StatefulSet-backed server on a player login and scales it back to 0<br/>`down_after` the last player leaves. `namespaces` lists the namespaces whose<br/>StatefulSet it may scale; servers elsewhere are routed but never scaled. | <pre>object({<br/>    enabled = optional(bool, false)<br/>    # Namespaces whose StatefulSet mc-router may scale (Role per namespace).<br/>    namespaces   = optional(list(string), [])<br/>    down_after   = optional(string, "10m")<br/>    asleep_motd  = optional(string, "Asleep - join to wake it, then join again in ~2 min")<br/>    loading_motd = optional(string, "Waking up - join again in a minute")<br/>  })</pre> | `{}` | no |
+| <a name="input_autoscale"></a> [autoscale](#input\_autoscale) | Scale idle minecraft servers to zero. When `enabled`, mc-router discovers<br/>its routes from Service annotations (`mc-router.itzg.me/externalServerName`,<br/>set by modules/minecraft `mc_router_discovery`) instead of `mappings`,<br/>wakes a StatefulSet-backed server on a player login and scales it back to 0<br/>`down_after` the last player leaves. `namespaces` lists the namespaces whose<br/>StatefulSet it may scale; servers elsewhere are routed but never scaled.<br/>Changing `namespaces` restarts the router so the switched servers' idle<br/>timers start (a hash of the list is a pod annotation). | <pre>object({<br/>    enabled = optional(bool, false)<br/>    # Namespaces whose StatefulSet mc-router may scale (Role per namespace).<br/>    namespaces   = optional(list(string), [])<br/>    down_after   = optional(string, "10m")<br/>    asleep_motd  = optional(string, "Asleep - join to wake it, then join again in ~2 min")<br/>    loading_motd = optional(string, "Waking up - join again in a minute")<br/>  })</pre> | `{}` | no |
 | <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | itzg/mc-router chart version. Pinned so upstream changes don't silently roll out. | `string` | `"1.5.0"` | no |
 | <a name="input_external_port"></a> [external\_port](#input\_external\_port) | External Minecraft port exposed by the mc-router LoadBalancer Service. | `number` | `25565` | no |
 | <a name="input_image_pull_secrets"></a> [image\_pull\_secrets](#input\_image\_pull\_secrets) | Names of pull Secrets in the release namespace (e.g. Docker Hub credentials), passed to the chart's imagePullSecrets. | `list(string)` | `[]` | no |
