@@ -93,5 +93,7 @@ variable "autoscale" {
     wakes a StatefulSet-backed server on a player login and scales it back to 0
     `down_after` the last player leaves. `namespaces` lists the namespaces whose
     StatefulSet it may scale; servers elsewhere are routed but never scaled.
+    Changing `namespaces` restarts the router so the switched servers' idle
+    timers start (a hash of the list is a pod annotation).
   EOS
 }

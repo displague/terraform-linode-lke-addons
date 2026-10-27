@@ -15,6 +15,17 @@
 # 25565 on the ingress-nginx Service instead (its `tcp-services`
 # ConfigMap) and run mc-router as ClusterIP — see the module README.
 
+locals {
+  # mc-router (1.49.0) starts a server's idle timer only when it first creates
+  # the route, when the backend comes up, or when a connection closes.
+  # Switching an existing server to scale_to_zero updates its route in place,
+  # so no timer starts and the server never sleeps. Hashing the sorted
+  # scale-to-zero namespaces into a pod annotation rolls the router whenever
+  # that set changes. The new pod creates every route afresh and starts the
+  # timers. Applies that leave the set alone leave the router alone.
+  scale_to_zero_checksum = sha256(jsonencode(sort(distinct(var.autoscale.namespaces))))
+}
+
 resource "helm_release" "mc_router" {
   name             = "mc-router"
   repository       = "https://itzg.github.io/minecraft-server-charts/"
@@ -62,6 +73,12 @@ resource "helm_release" "mc_router" {
       readOnlyRootFilesystem   = true
       capabilities             = { drop = ["ALL"] }
     }
+    # Only with autoscale, so a router without it never rolls for this. The
+    # release depends on the scaler RoleBindings, so the new pod starts with
+    # the permissions for a newly added namespace.
+    podAnnotations = var.autoscale.enabled ? {
+      "lke-addons/scale-to-zero-checksum" = local.scale_to_zero_checksum
+    } : {}
     image = {
       tag = var.image_tag
       # A pinned tag doesn't need re-pulling on every restart.
