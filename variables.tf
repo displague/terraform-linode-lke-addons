@@ -308,6 +308,11 @@ variable "github_runner_scale_sets" {
     cpu_request    = optional(string, "500m")
     memory_request = optional(string, "1Gi")
     memory_limit   = optional(string, "3Gi")
+    # The dind sidecar (service containers, docker builds). null leaves it
+    # unbounded, as before; a limit makes a runaway job fail inside its own
+    # pod instead of pushing the node out of memory.
+    dind_memory_request = optional(string)
+    dind_memory_limit   = optional(string)
   }))
   default     = {}
   description = <<-EOS
