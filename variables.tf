@@ -276,6 +276,18 @@ variable "extra_http_routes" {
   description = "Additional HTTP(S) hosts to route through the Gateway to an existing in-cluster Service (`namespace/service:port`). Each gets its own HTTPS listener + certificate. Set `path_prefixes` to route only those paths (the Gateway returns 404 for the rest), e.g. a sandbox origin that should serve nothing but `/apps/`."
 }
 
+variable "extra_tcp_routes" {
+  type = list(object({
+    hostnames      = list(string)
+    namespace      = string
+    service        = string
+    port           = number
+    proxy_protocol = optional(bool, false)
+    listener_port  = optional(number)
+  }))
+  default     = []
+  description = "Additional raw TCP Services to expose through the Gateway (`namespace/service:port`). `hostnames` are published by external-dns against the Gateway address. `listener_port` gives the route its own listener on that port (e.g. 25 for SMTP); without it the route shares the Minecraft TCP listener. `proxy_protocol = true` makes Envoy send a PROXY v2 header carrying the client address; set it only once the backend accepts the header, and only with `cloud_firewall_enabled`."
+}
 
 variable "dockerhub_username" {
   type        = string

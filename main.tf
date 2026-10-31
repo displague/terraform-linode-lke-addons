@@ -100,20 +100,31 @@ module "gateway" {
     var.extra_http_routes,
   )
 
-  tcp_routes = (var.mc_router_enabled && length(var.minecraft) > 0) ? [{
-    hostnames = [for m in var.minecraft : m.hostname]
-    namespace = "mc-router"
-    service   = "mc-router"
-    port      = 25565
-    # mc-router must accept the header before Envoy starts sending it.
-    proxy_protocol = var.mc_router_proxy_protocol == "on"
-  }] : []
+  tcp_routes = concat(
+    (var.mc_router_enabled && length(var.minecraft) > 0) ? [{
+      hostnames = [for m in var.minecraft : m.hostname]
+      namespace = "mc-router"
+      service   = "mc-router"
+      port      = 25565
+      # mc-router must accept the header before Envoy starts sending it.
+      proxy_protocol = var.mc_router_proxy_protocol == "on"
+      listener_port  = null
+    }] : [],
+    var.extra_tcp_routes,
+  )
 }
 
 check "proxy_protocol_needs_node_firewall" {
   assert {
     condition     = var.gateway_proxy_protocol != "on" || var.cloud_firewall_enabled
     error_message = "gateway_proxy_protocol = \"on\" without cloud_firewall_enabled: NodePorts are reachable from the internet, so client IPs can be forged with a PROXY header."
+  }
+}
+
+check "extra_tcp_routes_need_gateway" {
+  assert {
+    condition     = var.gateway_enabled || length(var.extra_tcp_routes) == 0
+    error_message = "extra_tcp_routes are exposed through the Gateway; set gateway_enabled."
   }
 }
 

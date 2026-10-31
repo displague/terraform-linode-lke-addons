@@ -53,6 +53,9 @@ variable "tcp_routes" {
     # Send PROXY v2 to the backend, carrying the client address Envoy saw
     # (the real one once `proxy_protocol = "on"`). The backend must accept it.
     proxy_protocol = optional(bool, false)
+    # Its own TCP listener on this port instead of the shared `tcp_port` one
+    # (e.g. 25 for SMTP). Routes naming the same port share that listener.
+    listener_port = optional(number)
   }))
   default     = []
   description = <<-EOS
@@ -62,8 +65,13 @@ variable "tcp_routes" {
     hostnames published by external-dns against the Gateway address.
     `proxy_protocol = true` adds a BackendTrafficPolicy so Envoy prepends a
     PROXY v2 header to every connection it opens to that backend; enable it
-    only once the backend accepts the header.
+    only once the backend accepts the header. `listener_port` puts the route
+    on its own listener on that port instead of `tcp_port`.
   EOS
+  validation {
+    condition     = alltrue([for r in var.tcp_routes : r.listener_port == null ? true : (r.listener_port >= 1 && r.listener_port <= 65535 && !contains([80, 443], r.listener_port))])
+    error_message = "listener_port must be 1-65535 and not 80 or 443 (the HTTP listeners)."
+  }
 }
 
 variable "tcp_port" {
