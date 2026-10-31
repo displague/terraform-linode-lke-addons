@@ -8,7 +8,8 @@ variable "scale_sets" {
     memory_limit   = optional(string, "3Gi")
     # The dind sidecar (service containers, docker builds). null leaves it
     # unbounded, as before; a limit makes a runaway job fail inside its own
-    # pod instead of pushing the node out of memory.
+    # pod instead of pushing the node out of memory. Needs image_cache or
+    # toolchain_cache enabled; a limit alone also sets the request to it.
     dind_memory_request = optional(string)
     dind_memory_limit   = optional(string)
   }))

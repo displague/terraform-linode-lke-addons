@@ -188,6 +188,15 @@ resource "helm_release" "scale_set" {
     # otherwise the chart builds it.
     merge([for _ in local.tmpl_off : { containerMode = { type = "dind" } }]...)
   ))]
+
+  lifecycle {
+    precondition {
+      # Without a cache the chart builds the dind sidecar itself, and these
+      # would be silently ignored.
+      condition     = local.explicit || (each.value.dind_memory_request == null && each.value.dind_memory_limit == null)
+      error_message = "dind_memory_request and dind_memory_limit need image_cache or toolchain_cache enabled (scale set ${each.key})."
+    }
+  }
 }
 
 # ---------- optional pull-through image cache ----------
