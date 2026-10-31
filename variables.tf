@@ -286,7 +286,7 @@ variable "extra_tcp_routes" {
     listener_port  = optional(number)
   }))
   default     = []
-  description = "Additional raw TCP Services to expose through the Gateway (`namespace/service:port`). `hostnames` are published by external-dns against the Gateway address. `listener_port` gives the route its own listener on that port (e.g. 25 for SMTP); without it the route shares the Minecraft TCP listener. `proxy_protocol = true` makes Envoy send a PROXY v2 header carrying the client address; set it only once the backend accepts the header, and only with `cloud_firewall_enabled`."
+  description = "Additional raw TCP Services to expose through the Gateway (`namespace/service:port`). `hostnames` are published by external-dns against the Gateway address. `listener_port` gives the route its own listener on that port (e.g. 25 for SMTP). Each listener carries one route, so set it unless nothing else (such as mc-router) uses `tcp_port`. `proxy_protocol = true` makes Envoy send a PROXY v2 header carrying the client address; set it only once the backend accepts the header, and only with `cloud_firewall_enabled`."
 }
 
 variable "dockerhub_username" {

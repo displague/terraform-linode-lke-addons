@@ -301,6 +301,14 @@ resource "kubectl_manifest" "tcp_route" {
   for_each          = { for r in var.tcp_routes : "${r.namespace}-${r.service}" => r }
   depends_on        = [kubectl_manifest.gateway]
   server_side_apply = true
+
+  lifecycle {
+    precondition {
+      # Envoy can't tell raw TCP routes apart, so a listener takes one route.
+      condition     = length(distinct(values(local.tcp_listener))) == length(var.tcp_routes)
+      error_message = "Each TCP listener carries one route: give every tcp_routes entry its own listener_port (one may use tcp_port)."
+    }
+  }
   yaml_body = yamlencode({
     apiVersion = "gateway.networking.k8s.io/v1alpha2"
     kind       = "TCPRoute"
