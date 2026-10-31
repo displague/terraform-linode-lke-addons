@@ -5,6 +5,8 @@
 #   - https/443      → one listener per hostname in var.http_routes, TLS
 #                      terminated at Envoy with a cert-manager cert
 #   - tcp/<tcp_port> → raw TCP passthrough for var.tcp_routes (Minecraft)
+#   - tcp-<port>     → one more TCP listener per distinct listener_port in
+#                      var.tcp_routes (e.g. SMTP on 25)
 #
 # One Gateway == one Envoy Deployment == one LoadBalancer Service == one
 # Linode NodeBalancer. That is the whole point: ingress-nginx + a separate
@@ -44,6 +46,18 @@ locals {
       name   = "https-${replace(r.hostname, ".", "-")}"
       secret = "${r.hostname}-tls"
     }
+  }
+
+  # Each TCP route's listener: the shared "tcp" one on var.tcp_port, or its
+  # own on listener_port.
+  tcp_listener = {
+    for r in var.tcp_routes : "${r.namespace}-${r.service}" => (
+      r.listener_port == null || r.listener_port == var.tcp_port ? "tcp" : "tcp-${r.listener_port}"
+    )
+  }
+  tcp_listener_ports = {
+    for name in distinct(values(local.tcp_listener)) :
+    name => name == "tcp" ? var.tcp_port : tonumber(trimprefix(name, "tcp-"))
   }
 
   service_annotations = merge(
@@ -219,10 +233,10 @@ resource "kubectl_manifest" "gateway" {
             certificateRefs = [{ kind = "Secret", name = l.secret }]
           }
         }],
-        length(var.tcp_routes) == 0 ? [] : [{
-          name     = "tcp"
+        [for name, port in local.tcp_listener_ports : {
+          name     = name
           protocol = "TCP"
-          port     = var.tcp_port
+          port     = port
           allowedRoutes = {
             namespaces = { from = "All" }
             kinds      = [{ kind = "TCPRoute" }]
@@ -287,6 +301,14 @@ resource "kubectl_manifest" "tcp_route" {
   for_each          = { for r in var.tcp_routes : "${r.namespace}-${r.service}" => r }
   depends_on        = [kubectl_manifest.gateway]
   server_side_apply = true
+
+  lifecycle {
+    precondition {
+      # Envoy can't tell raw TCP routes apart, so a listener takes one route.
+      condition     = length(distinct(values(local.tcp_listener))) == length(var.tcp_routes)
+      error_message = "Each TCP listener carries one route: give every tcp_routes entry its own listener_port (one may use tcp_port)."
+    }
+  }
   yaml_body = yamlencode({
     apiVersion = "gateway.networking.k8s.io/v1alpha2"
     kind       = "TCPRoute"
@@ -301,7 +323,7 @@ resource "kubectl_manifest" "tcp_route" {
       }
     }
     spec = {
-      parentRefs = [{ name = var.gateway_name, namespace = local.gw_ns, sectionName = "tcp" }]
+      parentRefs = [{ name = var.gateway_name, namespace = local.gw_ns, sectionName = local.tcp_listener[each.key] }]
       rules      = [{ backendRefs = [{ name = each.value.service, port = each.value.port }] }]
     }
   })
