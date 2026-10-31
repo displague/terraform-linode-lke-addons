@@ -11,6 +11,14 @@
 # https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners-with-actions-runner-controller
 
 locals {
+  # Memory request and limit for each scale set's dind sidecar; empty when unset.
+  dind_resources = { for name, set in var.scale_sets : name => { for k, v in {
+    requests = { for r, q in { memory = set.dind_memory_request } : r => q if q != null }
+    limits   = { for r, q in { memory = set.dind_memory_limit } : r => q if q != null }
+  } : k => v if length(v) > 0 } }
+}
+
+locals {
   repository = "oci://ghcr.io/actions/actions-runner-controller-charts"
   secret     = "arc-github"
 }
@@ -113,7 +121,7 @@ resource "helm_release" "scale_set" {
               command      = ["cp", "-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
               volumeMounts = [{ name = "dind-externals", mountPath = "/home/runner/tmpDir" }]
             },
-            {
+            merge({
               name  = "dind"
               image = "docker:dind"
               args = concat(
@@ -129,7 +137,10 @@ resource "helm_release" "scale_set" {
                 { name = "dind-sock", mountPath = "/var/run" },
                 { name = "dind-externals", mountPath = "/home/runner/externals" },
               ]
-            },
+              },
+              # Only when set, so existing runner pods render exactly as before.
+              length(local.dind_resources[each.key]) == 0 ? {} : { resources = local.dind_resources[each.key] },
+            ),
           ])
           volumes = concat(
             [{ name = "work", emptyDir = {} }, { name = "dind-sock", emptyDir = {} }, { name = "dind-externals", emptyDir = {} }],
@@ -177,6 +188,15 @@ resource "helm_release" "scale_set" {
     # otherwise the chart builds it.
     merge([for _ in local.tmpl_off : { containerMode = { type = "dind" } }]...)
   ))]
+
+  lifecycle {
+    precondition {
+      # Without a cache the chart builds the dind sidecar itself, and these
+      # would be silently ignored.
+      condition     = local.explicit || (each.value.dind_memory_request == null && each.value.dind_memory_limit == null)
+      error_message = "dind_memory_request and dind_memory_limit need image_cache or toolchain_cache enabled (scale set ${each.key})."
+    }
+  }
 }
 
 # ---------- optional pull-through image cache ----------
