@@ -386,3 +386,25 @@ variable "github_runner_toolchain_cache" {
     write to it; use it only for trusted (private) repositories.
   EOS
 }
+
+variable "cloud_firewall_extra_inbound_rules" {
+  type = list(object({
+    label       = string
+    action      = string
+    description = optional(string)
+    protocol    = string
+    ports       = optional(string)
+    addresses = object({
+      ipv4 = optional(list(string))
+      ipv6 = optional(list(string))
+    })
+  }))
+  default     = []
+  description = "Inbound rules appended to the cloud-firewall-controller's defaults on every node. For traffic that can't go through a NodeBalancer, such as a TURN relay that must see real peer addresses. Ignored unless `cloud_firewall_enabled`. Most clusters need none."
+}
+
+variable "external_dns_extra_sources" {
+  type        = list(string)
+  default     = []
+  description = "external-dns `--source` values added to the ones `gateway_enabled` picks, e.g. `[\"service\"]` to publish a hostNetwork workload's headless Service (annotate it with `external-dns.alpha.kubernetes.io/hostname` and `external-dns.alpha.kubernetes.io/endpoints-type: NodeExternalIP`). Only annotated objects are published."
+}
