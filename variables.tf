@@ -400,7 +400,7 @@ variable "cloud_firewall_extra_inbound_rules" {
     })
   }))
   default     = []
-  description = "Inbound rules appended to the cloud-firewall-controller's defaults on every node (needs `cloud_firewall_enabled`). For traffic that can't go through a NodeBalancer, such as a TURN relay that must see real peer addresses. Most clusters need none."
+  description = "Inbound rules appended to the cloud-firewall-controller's defaults on every node. For traffic that can't go through a NodeBalancer, such as a TURN relay that must see real peer addresses. Ignored unless `cloud_firewall_enabled`. Most clusters need none."
 }
 
 variable "external_dns_extra_sources" {

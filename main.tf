@@ -71,9 +71,11 @@ module "external_dns" {
   external_dns_token_expiry = var.external_dns_token_expiry
   # Once the Gateway owns the hostnames, stop reading Ingress/Service so the
   # two sources can't fight over the same records during/after cutover.
-  # extra sources (e.g. "service" for a hostNetwork workload's headless
-  # Service) only publish objects that carry an external-dns hostname
-  # annotation, so they don't compete with the Gateway's routes.
+  # Extra sources (e.g. "service" for a hostNetwork workload's headless
+  # Service) publish only objects that carry an external-dns hostname
+  # annotation. Note that "service" also publishes the minecraft/mc_router
+  # Services' hostname annotations whenever their service_type is
+  # LoadBalancer.
   sources = distinct(concat(
     var.gateway_enabled ? ["gateway-httproute", "gateway-tcproute"] : ["service", "ingress"],
     var.external_dns_extra_sources,

@@ -25,8 +25,15 @@ resource "helm_release" "controller" {
   version    = var.chart_version
   namespace  = "kube-system"
 
-  # Extra inbound rules are appended to the controller's default ruleset.
-  values = length(var.extra_inbound_rules) > 0 ? [yamlencode({
+  # The chart renders the primary CloudFirewall only when `firewall` is set;
+  # otherwise the controller creates it itself. Always render it, so that
+  # emptying extra_inbound_rules later can't make Helm delete the object
+  # (the controller's finalizer would then delete the Cloud Firewall and
+  # leave nodes unprotected until it recreates one). take_ownership adopts a
+  # primary the controller already created. Extra inbound rules are appended
+  # to the controller's default ruleset (defaultRules stays true).
+  take_ownership = true
+  values = [yamlencode({
     firewall = { inbound = var.extra_inbound_rules }
-  })] : []
+  })]
 }
